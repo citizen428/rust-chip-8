@@ -3,15 +3,20 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::rect::Rect;
 
+mod chip8;
+
+const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
+
 fn main() -> Result<(), String> {
   let sdl_context = sdl2::init()?;
   let video_subsystem = sdl_context.video()?;
 
-  let window = video_subsystem.window("Rust CHIP-8", 640, 320)
+  let window = video_subsystem
+    .window(EMULATOR_WINDOW_TITLE, chip8::WINDOW_WIDTH, chip8::WINDOW_HEIGHT)
     .position_centered().build()
-    .expect("could not initialize video subsystem");
+    .expect("Could not initialize video subsystem");
 
-  let mut canvas = window.into_canvas().build().expect("could not make a canvas");
+  let mut canvas = window.into_canvas().build().expect("Could not make a canvas");
 
   canvas.set_draw_color(Color::RGB(0, 0, 0));
   canvas.clear();
