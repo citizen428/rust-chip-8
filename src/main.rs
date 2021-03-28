@@ -8,10 +8,6 @@ mod chip8;
 const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
 fn main() -> Result<(), String> {
-    let mut chip8 = chip8::Chip8::new();
-    chip8.memory_set(42, 42);
-    println!("{}", &chip8.memory_get(42));
-
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
