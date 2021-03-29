@@ -2,6 +2,7 @@ const MEMORY_SIZE: usize = 4096;
 const WIDTH: u32 = 64;
 const HEIGHT: u32 = 32;
 const DATA_REGISTERS: usize = 16;
+const STACK_DEPTH: usize = 16;
 
 pub const SCALE_FACTOR: u32 = 10;
 pub const WINDOW_WIDTH: u32 = WIDTH * SCALE_FACTOR;
@@ -42,9 +43,12 @@ struct Registers {
     sp: u8,
 }
 
+type Stack = [u16; STACK_DEPTH];
+
 pub struct Chip8 {
     memory: Memory,
     registers: Registers,
+    stack: Stack,
 }
 
 fn data_register_to_index(register: Register) -> usize {
@@ -81,6 +85,7 @@ impl Chip8 {
                 pc: 0,
                 sp: 0,
             },
+            stack: [0; STACK_DEPTH],
         }
     }
 
@@ -103,7 +108,7 @@ impl Chip8 {
         }
     }
 
-    pub fn register_get(&mut self, register: Register) -> u16 {
+    pub fn register_get(&self, register: Register) -> u16 {
         match register {
             Register::I => self.registers.i,
             Register::DT => self.registers.delay_timer as u16,
@@ -112,6 +117,19 @@ impl Chip8 {
             Register::SP => self.registers.sp as u16,
             _ => self.registers.data[data_register_to_index(register)] as u16,
         }
+    }
+
+    pub fn stack_push(&mut self, value: u16) -> () {
+        assert!((self.registers.sp as usize) < STACK_DEPTH, "stack overflow");
+        self.stack[self.registers.sp as usize] = value;
+        self.registers.sp += 1;
+    }
+
+    pub fn stack_pop(&mut self) -> u16 {
+        assert!(self.registers.sp > 0, "stack underflow");
+        self.registers.sp -= 1;
+        assert!((self.registers.sp as usize) < STACK_DEPTH, "stack overflow");
+        self.stack[self.registers.sp as usize]
     }
 }
 
@@ -169,5 +187,19 @@ mod tests {
         let mut chip8 = Chip8::new();
         chip8.register_set(Register::PC, 42);
         assert_eq!(chip8.register_get(Register::PC), 42);
+    }
+
+    #[test]
+    fn it_can_push_to_and_pop_from_the_stack() {
+        let mut chip8 = Chip8::new();
+        assert_eq!(chip8.register_get(Register::SP), 0);
+        chip8.stack_push(0xff);
+        assert_eq!(chip8.register_get(Register::SP), 1);
+        chip8.stack_push(0xaa);
+        assert_eq!(chip8.register_get(Register::SP), 2);
+        assert_eq!(chip8.stack_pop(), 170);
+        assert_eq!(chip8.register_get(Register::SP), 1);
+        assert_eq!(chip8.stack_pop(), 255);
+        assert_eq!(chip8.register_get(Register::SP), 0);
     }
 }
