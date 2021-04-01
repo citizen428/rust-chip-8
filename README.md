@@ -4,29 +4,20 @@ A CHIP-8 emulator written in Rust
 
 ## Keyboard mapping
 
-CHIP-8 systems used a hexidecimal keyboard with the following layout:
+CHIP-8 systems used a hexidecimal keyboard with the layout shown on the left.
+This is mapped to the physical keyboard as shown on the right.
 
-|---|---|---|---|
-| 1 | 2 | 3 | C |
-|---|---|---|---|
-| 4 | 5 | 6 | D |
-|---|---|---|---|
-| 7 | 8 | 0 | E |
-|---|---|---|---|
-| A | 0 | B | F |
-|---|---|---|---|
-
-In this emulator the following keys are mapped to the above layout:
-
-|---|---|---|---|
-| 1 | 2 | 3 | 4 |
-|---|---|---|---|
-| Q | W | E | R |
-|---|---|---|---|
-| A | S | D | F |
-|---|---|---|---|
-| Z | X | C | V |
-|---|---|---|---|
+```
+|---|---|---|---|               |---|---|---|---|
+| 1 | 2 | 3 | C |               | 1 | 2 | 3 | 4 |
+|---|---|---|---|               |---|---|---|---|
+| 4 | 5 | 6 | D |               | Q | W | E | R |
+|---|---|---|---|               |---|---|---|---|
+| 7 | 8 | 0 | E |               | A | S | D | F |
+|---|---|---|---|               |---|---|---|---|
+| A | 0 | B | F |               | Z | X | C | V |
+|---|---|---|---|               |---|---|---|---|
+```
 
 So to get "deadbeef" inside the emulator you'd have to type "rfzrcffv".
 
