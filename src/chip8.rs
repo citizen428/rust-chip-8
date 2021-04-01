@@ -79,9 +79,38 @@ fn data_register_to_index(register: Register) -> usize {
     }
 }
 
+const DEFAULT_CHARACTER_SET: &[u8] = &[
+    0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xf0, 0x10, 0xf0, 0x80, 0xf0, // 2
+    0xf0, 0x10, 0xf0, 0x10, 0xf0, // 3
+    0x90, 0x90, 0xf0, 0x10, 0x10, // 4
+    0xf0, 0x80, 0xf0, 0x10, 0xf0, // 5
+    0xf0, 0x80, 0xf0, 0x90, 0xf0, // 6
+    0xf0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xf0, 0x90, 0xf0, 0x90, 0xf0, // 8
+    0xf0, 0x90, 0xf0, 0x10, 0xf0, // 9
+    0xf0, 0x90, 0xf0, 0x90, 0x90, // A
+    0xe0, 0x90, 0xe0, 0x90, 0xe0, // B
+    0xf0, 0x80, 0x80, 0x80, 0xf0, // C
+    0xe0, 0x90, 0x90, 0x90, 0xe0, // D
+    0xf0, 0x80, 0xf0, 0x80, 0xf0, // E
+    0xf0, 0x80, 0xf0, 0x80, 0x80, // F
+];
+
+const DEFAULT_CHARACTER_SET_START: usize = 0;
+
+fn copy_default_char_set(destination: &mut Chip8) {
+    let mut index = DEFAULT_CHARACTER_SET_START;
+    for byte in DEFAULT_CHARACTER_SET.iter() {
+        destination.memory_set(index, *byte);
+        index += 1;
+    }
+}
+
 impl Chip8 {
     pub fn new() -> Chip8 {
-        Chip8 {
+        let mut chip8 = Chip8 {
             memory: [0; MEMORY_SIZE],
             registers: Registers {
                 data: [0; DATA_REGISTERS],
@@ -93,7 +122,9 @@ impl Chip8 {
             },
             stack: [0; STACK_DEPTH],
             keyboard: [false; KEYS],
-        }
+        };
+        copy_default_char_set(&mut chip8);
+        chip8
     }
 
     pub fn memory_set(&mut self, index: usize, value: u8) -> () {
@@ -186,8 +217,8 @@ mod tests {
     #[test]
     fn it_can_write_the_memory() {
         let mut chip8 = Chip8::new();
-        chip8.memory_set(2, 42);
-        assert_eq!(chip8.memory[0..3], [0, 0, 42]);
+        chip8.memory_set(200, 42);
+        assert_eq!(chip8.memory[200..=202], [42, 0, 0]);
     }
 
     #[test]
@@ -259,5 +290,11 @@ mod tests {
         assert!(chip8.is_key_down(1));
         chip8.key_up(1);
         assert!(!chip8.is_key_down(1));
+    }
+
+    #[test]
+    fn it_has_a_default_character_set() {
+        let mut chip8 = Chip8::new();
+        assert_eq!(chip8.memory[0..5], [0xf0, 0x90, 0x90, 0x90, 0xf0])
     }
 }
