@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn it_maps_physical_keys_to_virtual_ones() {
-        let mut chip8 = Chip8::new();
+        let chip8 = Chip8::new();
         assert_eq!(chip8.keyboard_map(Keycode::A), Some(7));
         assert_eq!(chip8.keyboard_map(Keycode::X), Some(0));
         assert_eq!(chip8.keyboard_map(Keycode::M), None);
@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn it_has_a_default_character_set() {
-        let mut chip8 = Chip8::new();
+        let chip8 = Chip8::new();
         assert_eq!(chip8.memory[0..5], [0xf0, 0x90, 0x90, 0x90, 0xf0])
     }
 }
