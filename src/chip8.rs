@@ -1,8 +1,11 @@
+use sdl2::keyboard::Keycode;
+
 const MEMORY_SIZE: usize = 4096;
 const WIDTH: u32 = 64;
 const HEIGHT: u32 = 32;
 const DATA_REGISTERS: usize = 16;
 const STACK_DEPTH: usize = 16;
+const KEYS: usize = 16;
 
 pub const SCALE_FACTOR: u32 = 10;
 pub const WINDOW_WIDTH: u32 = WIDTH * SCALE_FACTOR;
@@ -45,10 +48,13 @@ struct Registers {
 
 type Stack = [u16; STACK_DEPTH];
 
+type Keyboard = [bool; KEYS];
+
 pub struct Chip8 {
     memory: Memory,
     registers: Registers,
     stack: Stack,
+    keyboard: Keyboard,
 }
 
 fn data_register_to_index(register: Register) -> usize {
@@ -86,6 +92,7 @@ impl Chip8 {
                 sp: 0,
             },
             stack: [0; STACK_DEPTH],
+            keyboard: [false; KEYS],
         }
     }
 
@@ -130,6 +137,40 @@ impl Chip8 {
         self.registers.sp -= 1;
         assert!((self.registers.sp as usize) < STACK_DEPTH, "stack overflow");
         self.stack[self.registers.sp as usize]
+    }
+
+    pub fn keyboard_map(&self, key: Keycode) -> Option<usize> {
+        match key {
+            Keycode::Num1 => Some(1),
+            Keycode::Num2 => Some(2),
+            Keycode::Num3 => Some(3),
+            Keycode::Num4 => Some(12),
+            Keycode::Q => Some(4),
+            Keycode::W => Some(5),
+            Keycode::E => Some(6),
+            Keycode::R => Some(13),
+            Keycode::A => Some(7),
+            Keycode::S => Some(8),
+            Keycode::D => Some(9),
+            Keycode::F => Some(14),
+            Keycode::Z => Some(10),
+            Keycode::X => Some(0),
+            Keycode::C => Some(11),
+            Keycode::V => Some(15),
+            _ => None,
+        }
+    }
+
+    pub fn key_down(&mut self, key: usize) -> () {
+        self.keyboard[key] = true
+    }
+
+    pub fn key_up(&mut self, key: usize) -> () {
+        self.keyboard[key] = false
+    }
+
+    pub fn is_key_down(&self, key: usize) -> bool {
+        self.keyboard[key]
     }
 }
 
@@ -201,5 +242,22 @@ mod tests {
         assert_eq!(chip8.register_get(Register::SP), 1);
         assert_eq!(chip8.stack_pop(), 255);
         assert_eq!(chip8.register_get(Register::SP), 0);
+    }
+
+    #[test]
+    fn it_maps_physical_keys_to_virtual_ones() {
+        let mut chip8 = Chip8::new();
+        assert_eq!(chip8.keyboard_map(Keycode::A), Some(7));
+        assert_eq!(chip8.keyboard_map(Keycode::X), Some(0));
+        assert_eq!(chip8.keyboard_map(Keycode::M), None);
+    }
+
+    #[test]
+    fn it_can_press_and_release_keys() {
+        let mut chip8 = Chip8::new();
+        chip8.key_down(1);
+        assert!(chip8.is_key_down(1));
+        chip8.key_up(1);
+        assert!(!chip8.is_key_down(1));
     }
 }

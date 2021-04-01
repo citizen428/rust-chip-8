@@ -1,5 +1,5 @@
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
@@ -8,6 +8,8 @@ mod chip8;
 const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
 fn main() -> Result<(), String> {
+    let mut chip8 = chip8::Chip8::new();
+
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
@@ -45,6 +47,22 @@ fn main() -> Result<(), String> {
                     ..
                 } => {
                     break 'mainloop;
+                }
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => {
+                    if let Some(vkey) = chip8.keyboard_map(key) {
+                        chip8.key_down(vkey);
+                        println!("key down: {}", vkey);
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(key), ..
+                } => {
+                    if let Some(vkey) = chip8.keyboard_map(key) {
+                        chip8.key_up(vkey);
+                        println!("key up: {}", vkey);
+                    }
                 }
                 _ => {}
             }
