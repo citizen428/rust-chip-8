@@ -1,4 +1,6 @@
 mod chip8;
+
+use chip8::display;
 use chip8::emulator::Chip8;
 
 use sdl2::event::Event;
@@ -10,6 +12,9 @@ const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
 fn main() -> Result<(), String> {
     let mut chip8 = Chip8::new();
+    chip8.screen.pixel_set(0, 0);
+    chip8.screen.pixel_set(10, 2);
+    chip8.screen.pixel_set(42, 23);
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -17,8 +22,8 @@ fn main() -> Result<(), String> {
     let window = video_subsystem
         .window(
             EMULATOR_WINDOW_TITLE,
-            chip8::display::WINDOW_WIDTH,
-            chip8::display::WINDOW_HEIGHT,
+            display::WINDOW_WIDTH,
+            display::WINDOW_HEIGHT,
         )
         .position_centered()
         .build()
@@ -33,12 +38,22 @@ fn main() -> Result<(), String> {
     canvas.clear();
 
     let mut event_pump = sdl_context.event_pump()?;
-    let mut i = 0;
 
     'mainloop: loop {
-        i = (i + 1) % 255;
-        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
-        canvas.fill_rect(Rect::new(10, 10, 620, 300))?;
+        canvas.set_draw_color(Color::RGB(255, 255, 255));
+
+        for y in 0..display::HEIGHT {
+            for x in 0..display::WIDTH {
+                if chip8.screen.is_pixel_set(x, y) {
+                    canvas.fill_rect(Rect::new(
+                        (x as u32 * display::SCALE_FACTOR) as i32,
+                        (y as u32 * display::SCALE_FACTOR) as i32,
+                        display::SCALE_FACTOR,
+                        display::SCALE_FACTOR,
+                    ))?;
+                }
+            }
+        }
 
         for event in event_pump.poll_iter() {
             match event {
