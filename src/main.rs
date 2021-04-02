@@ -1,14 +1,15 @@
+mod chip8;
+use chip8::emulator::Chip8;
+
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
-mod chip8;
-
 const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
 fn main() -> Result<(), String> {
-    let mut chip8 = chip8::Chip8::new();
+    let mut chip8 = Chip8::new();
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -16,8 +17,8 @@ fn main() -> Result<(), String> {
     let window = video_subsystem
         .window(
             EMULATOR_WINDOW_TITLE,
-            chip8::WINDOW_WIDTH,
-            chip8::WINDOW_HEIGHT,
+            chip8::display::WINDOW_WIDTH,
+            chip8::display::WINDOW_HEIGHT,
         )
         .position_centered()
         .build()
@@ -51,16 +52,16 @@ fn main() -> Result<(), String> {
                 Event::KeyDown {
                     keycode: Some(key), ..
                 } => {
-                    if let Some(vkey) = chip8.keyboard_map(key) {
-                        chip8.key_down(vkey);
+                    if let Some(vkey) = chip8.keyboard.map(key) {
+                        chip8.keyboard.key_down(vkey);
                         println!("key down: {}", vkey);
                     }
                 }
                 Event::KeyUp {
                     keycode: Some(key), ..
                 } => {
-                    if let Some(vkey) = chip8.keyboard_map(key) {
-                        chip8.key_up(vkey);
+                    if let Some(vkey) = chip8.keyboard.map(key) {
+                        chip8.keyboard.key_up(vkey);
                         println!("key up: {}", vkey);
                     }
                 }
