@@ -85,7 +85,7 @@ fn main() -> Result<(), String> {
         }
 
         canvas.present();
-        ::std::thread::sleep(::std::time::Duration::new(0, 1_000_000_000u32 / 60));
+        chip8.delay_if_necessary();
     }
 
     Ok(())
