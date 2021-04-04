@@ -49,6 +49,10 @@ impl Memory {
     pub fn get(&self, index: usize) -> u8 {
         self.memory[index]
     }
+
+    pub fn read(&self, start: usize, bytes: u8) -> &[u8] {
+        &self.memory[start..start + bytes as usize]
+    }
 }
 
 #[cfg(test)]
@@ -78,5 +82,13 @@ mod tests {
     fn it_contains_the_default_character_set() {
         let memory = Memory::new();
         assert_eq!(memory.memory[0..5], [0xf0, 0x90, 0x90, 0x90, 0xf0])
+    }
+
+    #[test]
+    fn it_returns_a_slice_of_memory() {
+        let memory = Memory::new();
+        let slice = memory.read(0, 5);
+        assert_eq!(slice.len(), 5);
+        assert_eq!(slice, [0xf0, 0x90, 0x90, 0x90, 0xf0]);
     }
 }

@@ -12,9 +12,9 @@ const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
 fn main() -> Result<(), String> {
     let mut chip8 = Chip8::new();
-    chip8.screen.pixel_set(0, 0);
-    chip8.screen.pixel_set(10, 2);
-    chip8.screen.pixel_set(42, 23);
+    chip8.screen.draw_sprite(24, 13, chip8.memory.read(20, 5));
+    chip8.screen.draw_sprite(29, 13, chip8.memory.read(10, 5));
+    chip8.screen.draw_sprite(34, 13, chip8.memory.read(40, 5));
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
