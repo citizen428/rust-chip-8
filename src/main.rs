@@ -11,13 +11,15 @@ use sdl2::rect::Rect;
 const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
 fn main() -> Result<(), String> {
-    let mut chip8 = Chip8::new();
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
+    let audio_subsystem = sdl_context.audio()?;
+
+    let mut chip8 = Chip8::new(&audio_subsystem);
     chip8.screen.draw_sprite(24, 13, chip8.memory.read(20, 5));
     chip8.screen.draw_sprite(29, 13, chip8.memory.read(10, 5));
     chip8.screen.draw_sprite(34, 13, chip8.memory.read(40, 5));
-
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
+    chip8.registers.set(chip8::registers::Register::ST, 5);
 
     let window = video_subsystem
         .window(
@@ -85,7 +87,8 @@ fn main() -> Result<(), String> {
         }
 
         canvas.present();
-        chip8.delay_if_necessary();
+        chip8.handle_delay_timer();
+        chip8.handle_sound_timer();
     }
 
     Ok(())
