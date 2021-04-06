@@ -1,4 +1,5 @@
-const MEMORY_SIZE: usize = 4096;
+pub const MEMORY_SIZE: usize = 4096;
+pub const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 
 const DEFAULT_CHARACTER_SET_START: usize = 0;
 
@@ -52,6 +53,11 @@ impl Memory {
 
     pub fn read(&self, start: usize, bytes: u8) -> &[u8] {
         &self.memory[start..start + bytes as usize]
+    }
+
+    pub fn read_opcode(&self, start: usize) -> u16 {
+        let bytes = self.read(start, 2);
+        (bytes[0] as u16) << 8 | bytes[1] as u16
     }
 }
 

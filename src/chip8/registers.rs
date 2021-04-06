@@ -1,3 +1,5 @@
+use super::memory::PROGRAM_LOAD_ADDRESS;
+
 const DATA_REGISTERS: usize = 16;
 
 pub enum Register {
@@ -62,7 +64,7 @@ impl Registers {
             i: 0,
             delay_timer: 0,
             sound_timer: 0,
-            pc: 0,
+            pc: PROGRAM_LOAD_ADDRESS as u16,
             sp: 0,
         }
     }

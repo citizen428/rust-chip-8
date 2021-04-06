@@ -8,18 +8,37 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
+use std::env;
+
 const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
 
-fn main() -> Result<(), String> {
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        println!("USAGE: {} <path to ROM>", &args[0]);
+        std::process::exit(0);
+    }
+
+    std::process::exit(match run(&args[1]) {
+        Ok(_) => 0,
+        Err(err) => {
+            eprintln!("ERROR: {:?}", err);
+            1
+        }
+    });
+}
+
+fn run(rom: &str) -> Result<(), String> {
+    print!("Initializing SDL: ");
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let audio_subsystem = sdl_context.audio()?;
+    println!("Done");
 
     let mut chip8 = Chip8::new(&audio_subsystem);
-    chip8.screen.draw_sprite(24, 13, chip8.memory.read(20, 5));
-    chip8.screen.draw_sprite(29, 13, chip8.memory.read(10, 5));
-    chip8.screen.draw_sprite(34, 13, chip8.memory.read(40, 5));
-    chip8.registers.set(chip8::registers::Register::ST, 5);
+    print!("Loading ROM: {}: ", &rom);
+    let bytes = chip8.load_rom(rom);
+    println!("Done ({} bytes)", bytes);
 
     let window = video_subsystem
         .window(
@@ -89,6 +108,8 @@ fn main() -> Result<(), String> {
         canvas.present();
         chip8.handle_delay_timer();
         chip8.handle_sound_timer();
+
+        chip8.exec();
     }
 
     Ok(())

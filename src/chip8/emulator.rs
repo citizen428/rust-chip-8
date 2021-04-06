@@ -1,13 +1,13 @@
 use crate::chip8::audio::Speaker;
 use crate::chip8::display::Screen;
 use crate::chip8::keyboard::Keyboard;
-use crate::chip8::memory::Memory;
+use crate::chip8::memory::{Memory, MEMORY_SIZE, PROGRAM_LOAD_ADDRESS};
 use crate::chip8::registers::{Register, Registers};
 use crate::chip8::stack::Stack;
 
 use sdl2::AudioSubsystem;
 
-use std::{thread, time::Duration};
+use std::{fs, thread, time::Duration};
 
 pub struct Chip8 {
     pub memory: Memory,
@@ -30,11 +30,6 @@ impl Chip8 {
         }
     }
 
-    pub fn handle_timers(&mut self) -> () {
-        self.handle_delay_timer();
-        self.handle_sound_timer();
-    }
-
     pub fn handle_delay_timer(&mut self) -> () {
         let delay_timer = self.registers.get(Register::DT);
         if delay_timer > 0 {
@@ -51,5 +46,27 @@ impl Chip8 {
             thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
             self.registers.set(Register::ST, sound_timer - 1);
         }
+    }
+
+    pub fn load_rom(&mut self, file: &str) -> usize {
+        let rom = fs::read(file).expect("Cannot read ROM");
+        let rom_length = rom.len();
+
+        if rom_length > MEMORY_SIZE - PROGRAM_LOAD_ADDRESS {
+            panic!("ROM too big, aborting")
+        }
+
+        for (i, byte) in rom.iter().enumerate() {
+            self.memory.set(PROGRAM_LOAD_ADDRESS + i, *byte);
+        }
+
+        rom_length
+    }
+
+    pub fn exec(&mut self) {
+        let pc = self.registers.get(Register::PC);
+        let opcode = self.memory.read_opcode(pc as usize);
+        println!("{}", opcode);
+        self.registers.set(Register::PC, pc + 2);
     }
 }
