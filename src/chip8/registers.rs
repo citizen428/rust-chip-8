@@ -26,24 +26,26 @@ pub enum Register {
     SP,
 }
 
+use Register::*;
+
 fn data_register_to_index(register: Register) -> usize {
     match register {
-        Register::V0 => 0,
-        Register::V1 => 1,
-        Register::V2 => 2,
-        Register::V3 => 3,
-        Register::V4 => 4,
-        Register::V5 => 5,
-        Register::V6 => 6,
-        Register::V7 => 7,
-        Register::V8 => 8,
-        Register::V9 => 9,
-        Register::VA => 10,
-        Register::VB => 11,
-        Register::VC => 12,
-        Register::VD => 13,
-        Register::VE => 14,
-        Register::VF => 15,
+        V0 => 0,
+        V1 => 1,
+        V2 => 2,
+        V3 => 3,
+        V4 => 4,
+        V5 => 5,
+        V6 => 6,
+        V7 => 7,
+        V8 => 8,
+        V9 => 9,
+        VA => 10,
+        VB => 11,
+        VC => 12,
+        VD => 13,
+        VE => 14,
+        VF => 15,
         _ => panic!("invalid data register"),
     }
 }
@@ -71,22 +73,22 @@ impl Registers {
 
     pub fn set(&mut self, register: Register, value: u16) -> () {
         match register {
-            Register::I => self.i = value,
-            Register::DT => self.delay_timer = value as u8,
-            Register::ST => self.sound_timer = value as u8,
-            Register::PC => self.pc = value,
-            Register::SP => self.sp = value as u8,
+            I => self.i = value,
+            DT => self.delay_timer = value as u8,
+            ST => self.sound_timer = value as u8,
+            PC => self.pc = value,
+            SP => self.sp = value as u8,
             _ => self.data[data_register_to_index(register)] = value as u8,
         }
     }
 
     pub fn get(&self, register: Register) -> u16 {
         match register {
-            Register::I => self.i,
-            Register::DT => self.delay_timer as u16,
-            Register::ST => self.sound_timer as u16,
-            Register::PC => self.pc,
-            Register::SP => self.sp as u16,
+            I => self.i,
+            DT => self.delay_timer as u16,
+            ST => self.sound_timer as u16,
+            PC => self.pc,
+            SP => self.sp as u16,
             _ => self.data[data_register_to_index(register)] as u16,
         }
     }
@@ -104,28 +106,28 @@ mod tests {
     #[test]
     fn it_can_write_data_registers() {
         let mut registers = Registers::new();
-        registers.set(Register::VA, 42);
+        registers.set(VA, 42);
         assert_eq!(registers.data[10], 42);
     }
 
     #[test]
     fn it_can_read_data_registers() {
         let mut registers = Registers::new();
-        registers.set(Register::VA, 42);
-        assert_eq!(registers.get(Register::VA), 42);
+        registers.set(VA, 42);
+        assert_eq!(registers.get(VA), 42);
     }
 
     #[test]
     fn it_can_write_special_registers() {
         let mut registers = Registers::new();
-        registers.set(Register::PC, 42);
+        registers.set(PC, 42);
         assert_eq!(registers.pc, 42);
     }
 
     #[test]
     fn it_can_read_special_registers() {
         let mut registers = Registers::new();
-        registers.set(Register::PC, 42);
-        assert_eq!(registers.get(Register::PC), 42);
+        registers.set(PC, 42);
+        assert_eq!(registers.get(PC), 42);
     }
 }

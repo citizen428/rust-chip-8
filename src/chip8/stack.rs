@@ -28,22 +28,22 @@ impl Stack {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chip8::registers::{Register, Registers};
+    use crate::chip8::registers::{Register::*, Registers};
 
     #[test]
     fn it_can_push_to_and_pop_from_the_stack() {
         let mut registers = Registers::new();
-        assert_eq!(registers.get(Register::SP), 0);
+        assert_eq!(registers.get(SP), 0);
 
         let mut stack = Stack::new();
         stack.push(&mut registers.sp, 0xff);
-        assert_eq!(registers.get(Register::SP), 1);
+        assert_eq!(registers.get(SP), 1);
 
         stack.push(&mut registers.sp, 0xaa);
-        assert_eq!(registers.get(Register::SP), 2);
+        assert_eq!(registers.get(SP), 2);
         assert_eq!(stack.pop(&mut registers.sp), 170);
-        assert_eq!(registers.get(Register::SP), 1);
+        assert_eq!(registers.get(SP), 1);
         assert_eq!(stack.pop(&mut registers.sp), 255);
-        assert_eq!(registers.get(Register::SP), 0);
+        assert_eq!(registers.get(SP), 0);
     }
 }

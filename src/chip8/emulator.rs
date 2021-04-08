@@ -2,7 +2,7 @@ use crate::chip8::audio::Speaker;
 use crate::chip8::display::Screen;
 use crate::chip8::keyboard::Keyboard;
 use crate::chip8::memory::{Memory, MEMORY_SIZE, PROGRAM_LOAD_ADDRESS};
-use crate::chip8::registers::{Register, Registers};
+use crate::chip8::registers::{Register::*, Registers};
 use crate::chip8::stack::Stack;
 
 use sdl2::AudioSubsystem;
@@ -31,20 +31,20 @@ impl Chip8 {
     }
 
     pub fn handle_delay_timer(&mut self) -> () {
-        let delay_timer = self.registers.get(Register::DT);
+        let delay_timer = self.registers.get(DT);
         if delay_timer > 0 {
             thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-            self.registers.set(Register::DT, delay_timer - 1);
+            self.registers.set(DT, delay_timer - 1);
         }
     }
 
     pub fn handle_sound_timer(&mut self) {
-        let sound_timer = self.registers.get(Register::ST);
+        let sound_timer = self.registers.get(ST);
         let status = sound_timer > 0;
         self.speaker.beep(status);
         if status {
             thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-            self.registers.set(Register::ST, sound_timer - 1);
+            self.registers.set(ST, sound_timer - 1);
         }
     }
 
@@ -64,9 +64,9 @@ impl Chip8 {
     }
 
     pub fn exec(&mut self) {
-        let pc = self.registers.get(Register::PC);
+        let pc = self.registers.get(PC);
         let opcode = self.memory.read_opcode(pc as usize);
         println!("{}", opcode);
-        self.registers.set(Register::PC, pc + 2);
+        self.registers.set(PC, pc + 2);
     }
 }
