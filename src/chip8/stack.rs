@@ -5,7 +5,7 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub fn new() -> Stack {
+    pub fn new() -> Self {
         Stack {
             stack: [0; STACK_DEPTH],
         }

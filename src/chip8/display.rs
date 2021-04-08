@@ -9,7 +9,7 @@ pub struct Screen {
 }
 
 impl Screen {
-    pub fn new() -> Screen {
+    pub fn new() -> Self {
         Screen {
             pixels: [[false; WIDTH]; HEIGHT],
         }

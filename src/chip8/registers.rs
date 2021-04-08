@@ -60,7 +60,7 @@ pub struct Registers {
 }
 
 impl Registers {
-    pub fn new() -> Registers {
+    pub fn new() -> Self {
         Registers {
             data: [0; DATA_REGISTERS],
             i: 0,

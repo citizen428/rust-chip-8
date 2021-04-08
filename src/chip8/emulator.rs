@@ -19,7 +19,7 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-    pub fn new(audio_subsystem: &AudioSubsystem) -> Chip8 {
+    pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
         Chip8 {
             memory: Memory::new(),
             registers: Registers::new(),

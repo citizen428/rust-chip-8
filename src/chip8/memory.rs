@@ -35,7 +35,7 @@ fn copy_default_char_set(memory: &mut Memory) {
 }
 
 impl Memory {
-    pub fn new() -> Memory {
+    pub fn new() -> Self {
         let mut memory = Memory {
             memory: [0; MEMORY_SIZE],
         };

@@ -7,7 +7,7 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
-    pub fn new() -> Keyboard {
+    pub fn new() -> Self {
         Keyboard {
             keyboard: [false; KEYS],
         }
