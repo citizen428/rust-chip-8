@@ -3,7 +3,7 @@ pub const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 
 const DEFAULT_CHARACTER_SET_START: usize = 0;
 
-const DEFAULT_CHARACTER_SET: [u8; 80] = [
+static DEFAULT_CHARACTER_SET: [u8; 80] = [
     0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xf0, 0x10, 0xf0, 0x80, 0xf0, // 2

@@ -1,4 +1,4 @@
-use super::memory::PROGRAM_LOAD_ADDRESS;
+use super::memory;
 
 const DATA_REGISTERS: usize = 16;
 
@@ -66,7 +66,7 @@ impl Registers {
             i: 0,
             delay_timer: 0,
             sound_timer: 0,
-            pc: PROGRAM_LOAD_ADDRESS as u16,
+            pc: memory::PROGRAM_LOAD_ADDRESS as u16,
             sp: 0,
         }
     }

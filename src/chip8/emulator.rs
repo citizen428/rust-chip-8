@@ -1,7 +1,7 @@
 use crate::chip8::audio::Speaker;
 use crate::chip8::display::Screen;
 use crate::chip8::keyboard::Keyboard;
-use crate::chip8::memory::{Memory, MEMORY_SIZE, PROGRAM_LOAD_ADDRESS};
+use crate::chip8::memory::{self, Memory};
 use crate::chip8::registers::{Register::*, Registers};
 use crate::chip8::stack::Stack;
 
@@ -52,12 +52,12 @@ impl Chip8 {
         let rom = fs::read(file).expect("Cannot read ROM");
         let rom_length = rom.len();
 
-        if rom_length > MEMORY_SIZE - PROGRAM_LOAD_ADDRESS {
+        if rom_length > memory::MEMORY_SIZE - memory::PROGRAM_LOAD_ADDRESS {
             panic!("ROM too big, aborting")
         }
 
         for (i, byte) in rom.iter().enumerate() {
-            self.memory.set(PROGRAM_LOAD_ADDRESS + i, *byte);
+            self.memory.set(memory::PROGRAM_LOAD_ADDRESS + i, *byte);
         }
 
         rom_length
