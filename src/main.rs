@@ -63,19 +63,6 @@ fn run(rom: &str) -> Result<(), String> {
     'mainloop: loop {
         canvas.set_draw_color(Color::RGB(255, 255, 255));
 
-        for y in 0..display::HEIGHT {
-            for x in 0..display::WIDTH {
-                if chip8.screen.is_pixel_set(x, y) {
-                    canvas.fill_rect(Rect::new(
-                        (x as u32 * display::SCALE_FACTOR) as i32,
-                        (y as u32 * display::SCALE_FACTOR) as i32,
-                        display::SCALE_FACTOR,
-                        display::SCALE_FACTOR,
-                    ))?;
-                }
-            }
-        }
-
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -108,8 +95,20 @@ fn run(rom: &str) -> Result<(), String> {
         canvas.present();
         chip8.handle_delay_timer();
         chip8.handle_sound_timer();
-
         chip8.exec();
+
+        for y in 0..display::HEIGHT {
+            for x in 0..display::WIDTH {
+                if chip8.screen.is_pixel_set(x, y) {
+                    canvas.fill_rect(Rect::new(
+                        (x as u32 * display::SCALE_FACTOR) as i32,
+                        (y as u32 * display::SCALE_FACTOR) as i32,
+                        display::SCALE_FACTOR,
+                        display::SCALE_FACTOR,
+                    ))?;
+                }
+            }
+        }
     }
 
     Ok(())

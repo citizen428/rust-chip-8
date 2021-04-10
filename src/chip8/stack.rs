@@ -1,3 +1,5 @@
+use crate::chip8::registers::Registers;
+
 pub const STACK_DEPTH: usize = 16;
 
 pub struct Stack {
@@ -11,39 +13,42 @@ impl Stack {
         }
     }
 
-    pub fn push(&mut self, stack_pointer: &mut u8, value: u16) -> () {
-        assert!((*stack_pointer as usize) < STACK_DEPTH, "stack overflow");
-        self.stack[*stack_pointer as usize] = value;
-        *stack_pointer += 1;
+    pub fn push(&mut self, registers: &mut Registers, value: u16) {
+        let stack_pointer = registers.get_sp() as usize;
+        assert!(stack_pointer < STACK_DEPTH, "stack overflow");
+        self.stack[stack_pointer] = value;
+        registers.inc_sp();
     }
 
-    pub fn pop(&mut self, stack_pointer: &mut u8) -> u16 {
-        assert!((*stack_pointer as usize) > 0, "stack underflow");
-        *stack_pointer -= 1;
-        assert!((*stack_pointer as usize) < STACK_DEPTH, "stack overflow");
-        self.stack[*stack_pointer as usize]
+    pub fn pop(&mut self, registers: &mut Registers) -> u16 {
+        let stack_pointer = registers.get_sp() as usize;
+        assert!(stack_pointer > 0, "stack underflow");
+        registers.dec_sp();
+        assert!(stack_pointer < STACK_DEPTH, "stack overflow");
+        self.stack[registers.get_sp() as usize]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chip8::registers::{Register::*, Registers};
 
     #[test]
     fn it_can_push_to_and_pop_from_the_stack() {
         let mut registers = Registers::new();
-        assert_eq!(registers.get(SP), 0);
+        assert_eq!(registers.get_sp(), 0);
 
         let mut stack = Stack::new();
-        stack.push(&mut registers.sp, 0xff);
-        assert_eq!(registers.get(SP), 1);
+        stack.push(&mut registers, 0xff);
+        assert_eq!(registers.get_sp(), 1);
+        assert_eq!(stack.stack[0], 0xff);
 
-        stack.push(&mut registers.sp, 0xaa);
-        assert_eq!(registers.get(SP), 2);
-        assert_eq!(stack.pop(&mut registers.sp), 170);
-        assert_eq!(registers.get(SP), 1);
-        assert_eq!(stack.pop(&mut registers.sp), 255);
-        assert_eq!(registers.get(SP), 0);
+        stack.push(&mut registers, 0xaa);
+        assert_eq!(registers.get_sp(), 2);
+        assert_eq!(stack.stack[1], 0xaa);
+        assert_eq!(stack.pop(&mut registers), 170);
+        assert_eq!(registers.get_sp(), 1);
+        assert_eq!(stack.pop(&mut registers), 255);
+        assert_eq!(registers.get_sp(), 0);
     }
 }

@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn it_maps_physical_keys_to_virtual_ones() {
-        let mut keyboard = Keyboard::new();
+        let keyboard = Keyboard::new();
         assert_eq!(keyboard.map(Keycode::A), Some(7));
         assert_eq!(keyboard.map(Keycode::X), Some(0));
         assert_eq!(keyboard.map(Keycode::M), None);

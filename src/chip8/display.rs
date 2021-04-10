@@ -32,9 +32,7 @@ impl Screen {
                 if b & 0b10000000 >> lx > 0 {
                     let dx = (x + lx) % WIDTH;
                     let dy = (y + ly) % HEIGHT;
-                    if !pixel_collission && self.is_pixel_set(dx, dy) {
-                        pixel_collission = true;
-                    }
+                    pixel_collission = pixel_collission || self.is_pixel_set(dx, dy);
 
                     self.pixel_set(dx, dy);
                 }
@@ -42,6 +40,10 @@ impl Screen {
         }
 
         pixel_collission
+    }
+
+    pub fn clear(&mut self) {
+        self.pixels = [[false; WIDTH]; HEIGHT];
     }
 }
 

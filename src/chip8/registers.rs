@@ -1,68 +1,21 @@
+use super::cpu;
 use super::memory;
 
 const DATA_REGISTERS: usize = 16;
 
-pub enum Register {
-    V0,
-    V1,
-    V2,
-    V3,
-    V4,
-    V5,
-    V6,
-    V7,
-    V8,
-    V9,
-    VA,
-    VB,
-    VC,
-    VD,
-    VE,
-    VF,
-    I,
-    DT,
-    ST,
-    PC,
-    SP,
-}
-
-use Register::*;
-
-fn data_register_to_index(register: Register) -> usize {
-    match register {
-        V0 => 0,
-        V1 => 1,
-        V2 => 2,
-        V3 => 3,
-        V4 => 4,
-        V5 => 5,
-        V6 => 6,
-        V7 => 7,
-        V8 => 8,
-        V9 => 9,
-        VA => 10,
-        VB => 11,
-        VC => 12,
-        VD => 13,
-        VE => 14,
-        VF => 15,
-        _ => panic!("invalid data register"),
-    }
-}
-
 pub struct Registers {
-    data: [u8; DATA_REGISTERS],
+    v: [u8; DATA_REGISTERS],
     i: u16,
     delay_timer: u8,
     sound_timer: u8,
     pc: u16,
-    pub sp: u8,
+    sp: u8,
 }
 
 impl Registers {
     pub fn new() -> Self {
         Registers {
-            data: [0; DATA_REGISTERS],
+            v: [0; DATA_REGISTERS],
             i: 0,
             delay_timer: 0,
             sound_timer: 0,
@@ -71,26 +24,72 @@ impl Registers {
         }
     }
 
-    pub fn set(&mut self, register: Register, value: u16) -> () {
-        match register {
-            I => self.i = value,
-            DT => self.delay_timer = value as u8,
-            ST => self.sound_timer = value as u8,
-            PC => self.pc = value,
-            SP => self.sp = value as u8,
-            _ => self.data[data_register_to_index(register)] = value as u8,
-        }
+    pub fn get_v(&self, n: usize) -> u8 {
+        self.v[n]
     }
 
-    pub fn get(&self, register: Register) -> u16 {
-        match register {
-            I => self.i,
-            DT => self.delay_timer as u16,
-            ST => self.sound_timer as u16,
-            PC => self.pc,
-            SP => self.sp as u16,
-            _ => self.data[data_register_to_index(register)] as u16,
-        }
+    pub fn set_v(&mut self, n: usize, value: u8) {
+        self.v[n] = value;
+    }
+
+    pub fn get_i(&self) -> u16 {
+        self.i
+    }
+
+    pub fn set_i(&mut self, addr: u16) {
+        self.i = addr;
+    }
+
+    pub fn get_dt(&self) -> u8 {
+        self.delay_timer
+    }
+
+    pub fn set_dt(&mut self, value: u8) {
+        self.delay_timer = value;
+    }
+
+    pub fn dec_dt(&mut self) {
+        self.delay_timer -= 1;
+    }
+
+    pub fn get_st(&self) -> u8 {
+        self.sound_timer
+    }
+
+    pub fn set_st(&mut self, value: u8) {
+        self.sound_timer = value;
+    }
+
+    pub fn dec_st(&mut self) {
+        self.sound_timer -= 1;
+    }
+
+    pub fn get_pc(&self) -> u16 {
+        self.pc
+    }
+
+    pub fn set_pc(&mut self, value: u16) {
+        self.pc = value;
+    }
+
+    pub fn advance_pc(&mut self) {
+        self.pc += cpu::INSTRUCTION_LENGTH;
+    }
+
+    pub fn get_sp(&self) -> u8 {
+        self.sp
+    }
+
+    pub fn inc_sp(&mut self) {
+        self.sp += 1;
+    }
+
+    pub fn dec_sp(&mut self) {
+        self.sp -= 1;
+    }
+
+    pub fn set_carry_if(&mut self, condition: bool) {
+        self.v[0xf] = if condition { 1 } else { 0 };
     }
 }
 
@@ -100,34 +99,34 @@ mod tests {
 
     #[test]
     fn it_has_the_correct_number_of_data_registers() {
-        assert_eq!(Registers::new().data.len(), DATA_REGISTERS);
+        assert_eq!(Registers::new().v.len(), DATA_REGISTERS);
     }
 
     #[test]
     fn it_can_write_data_registers() {
         let mut registers = Registers::new();
-        registers.set(VA, 42);
-        assert_eq!(registers.data[10], 42);
+        registers.set_v(0xA, 42);
+        assert_eq!(registers.v[0xA], 42);
     }
 
     #[test]
     fn it_can_read_data_registers() {
         let mut registers = Registers::new();
-        registers.set(VA, 42);
-        assert_eq!(registers.get(VA), 42);
+        registers.set_v(0xA, 42);
+        assert_eq!(registers.get_v(0xA), 42);
     }
 
     #[test]
     fn it_can_write_special_registers() {
         let mut registers = Registers::new();
-        registers.set(PC, 42);
+        registers.set_pc(42);
         assert_eq!(registers.pc, 42);
     }
 
     #[test]
     fn it_can_read_special_registers() {
         let mut registers = Registers::new();
-        registers.set(PC, 42);
-        assert_eq!(registers.get(PC), 42);
+        registers.set_pc(42);
+        assert_eq!(registers.get_pc(), 42);
     }
 }
