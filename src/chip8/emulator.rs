@@ -20,6 +20,9 @@ pub struct Chip8 {
     pub speaker: Speaker,
 }
 
+// Sleep duration for a 60 Hz refresh rate
+const REFRESH_DURATION: Duration = Duration::from_millis(1000 / 60);
+
 impl Chip8 {
     pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
         Chip8 {
@@ -34,7 +37,7 @@ impl Chip8 {
 
     pub fn handle_delay_timer(&mut self) -> () {
         if self.registers.get_dt() > 0 {
-            thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+            thread::sleep(REFRESH_DURATION);
             self.registers.dec_dt();
         }
     }
@@ -43,7 +46,7 @@ impl Chip8 {
         let status = self.registers.get_st() > 0;
         self.speaker.beep(status);
         if status {
-            thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+            thread::sleep(REFRESH_DURATION);
             self.registers.dec_st();
         }
     }
