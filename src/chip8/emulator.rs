@@ -51,8 +51,8 @@ impl Chip8 {
         }
     }
 
-    pub fn load_rom(&mut self, file: &str) -> usize {
-        let rom = fs::read(file).expect("Cannot read ROM");
+    pub fn load_rom(&mut self, file: &str) -> Result<usize, String> {
+        let rom = fs::read(file).map_err(|e| format!("Cannot read ROM: {}", e))?;
         let rom_length = rom.len();
 
         if rom_length > memory::MEMORY_SIZE - memory::PROGRAM_LOAD_ADDRESS {

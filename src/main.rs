@@ -38,7 +38,7 @@ fn run(rom: &str) -> Result<(), String> {
 
     let mut chip8 = Chip8::new(&audio_subsystem);
     debug_print!("Loading ROM: {}: ", &rom);
-    let bytes = chip8.load_rom(rom);
+    let bytes = chip8.load_rom(rom)?;
     debug_println!("Done ({} bytes)", bytes);
 
     let window = video_subsystem
