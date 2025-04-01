@@ -1,6 +1,6 @@
 use crate::chip8::audio::Speaker;
-use crate::chip8::cpu::Instruction;
 use crate::chip8::display::Screen;
+use crate::chip8::instruction::Instruction;
 use crate::chip8::keyboard::Keyboard;
 use crate::chip8::memory::{self, Memory};
 use crate::chip8::registers::Registers;

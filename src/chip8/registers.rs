@@ -1,4 +1,4 @@
-use super::cpu;
+use super::instruction;
 use super::memory;
 
 const DATA_REGISTERS: usize = 16;
@@ -73,7 +73,7 @@ impl Registers {
     }
 
     pub fn advance_pc(&mut self) {
-        self.pc += cpu::INSTRUCTION_LENGTH;
+        self.pc += instruction::INSTRUCTION_LENGTH;
     }
 
     pub fn get_sp(&self) -> u8 {
