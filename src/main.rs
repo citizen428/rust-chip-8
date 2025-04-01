@@ -3,6 +3,7 @@ mod chip8;
 use chip8::display;
 use chip8::emulator::Chip8;
 
+use debug_print::{debug_eprintln, debug_print, debug_println};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -22,23 +23,23 @@ fn main() {
     std::process::exit(match run(&args[1]) {
         Ok(_) => 0,
         Err(err) => {
-            eprintln!("ERROR: {:?}", err);
+            debug_eprintln!("ERROR: {:?}", err);
             1
         }
     });
 }
 
 fn run(rom: &str) -> Result<(), String> {
-    print!("Initializing SDL: ");
+    debug_print!("Initializing SDL: ");
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let audio_subsystem = sdl_context.audio()?;
-    println!("Done");
+    debug_println!("Done");
 
     let mut chip8 = Chip8::new(&audio_subsystem);
-    print!("Loading ROM: {}: ", &rom);
+    debug_print!("Loading ROM: {}: ", &rom);
     let bytes = chip8.load_rom(rom);
-    println!("Done ({} bytes)", bytes);
+    debug_println!("Done ({} bytes)", bytes);
 
     let window = video_subsystem
         .window(
@@ -77,7 +78,7 @@ fn run(rom: &str) -> Result<(), String> {
                 } => {
                     if let Some(vkey) = chip8.keyboard.map(key) {
                         chip8.keyboard.key_down(vkey);
-                        println!("key down: {}", vkey);
+                        debug_println!("key down: {}", vkey);
                     }
                 }
                 Event::KeyUp {
@@ -85,7 +86,7 @@ fn run(rom: &str) -> Result<(), String> {
                 } => {
                     if let Some(vkey) = chip8.keyboard.map(key) {
                         chip8.keyboard.key_up(vkey);
-                        println!("key up: {}", vkey);
+                        debug_println!("key up: {}", vkey);
                     }
                 }
                 _ => {}

@@ -9,3 +9,4 @@ edition = "2024"
 [dependencies]
 rand = "0.9.0"
 sdl2 = "0.37.0"
+debug_print = "1.0.0"

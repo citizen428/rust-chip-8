@@ -325,7 +325,7 @@ impl Chip8 {
                 }
             }
 
-            _ => println!("Invalid instruction"),
+            _ => eprintln!("Invalid instruction"),
         }
     }
 }
