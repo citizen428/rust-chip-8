@@ -35,11 +35,11 @@ impl Keyboard {
         }
     }
 
-    pub fn key_down(&mut self, key: usize) -> () {
+    pub fn key_down(&mut self, key: usize) {
         self.keyboard[key] = true
     }
 
-    pub fn key_up(&mut self, key: usize) -> () {
+    pub fn key_up(&mut self, key: usize) {
         self.keyboard[key] = false
     }
 

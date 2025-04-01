@@ -43,7 +43,7 @@ impl Memory {
         memory
     }
 
-    pub fn set(&mut self, index: usize, value: u8) -> () {
+    pub fn set(&mut self, index: usize, value: u8) {
         self.memory[index] = value;
     }
 

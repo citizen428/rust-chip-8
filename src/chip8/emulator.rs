@@ -35,7 +35,7 @@ impl Chip8 {
         }
     }
 
-    pub fn handle_delay_timer(&mut self) -> () {
+    pub fn handle_delay_timer(&mut self) {
         if self.registers.get_dt() > 0 {
             thread::sleep(REFRESH_DURATION);
             self.registers.dec_dt();
@@ -56,14 +56,14 @@ impl Chip8 {
         let rom_length = rom.len();
 
         if rom_length > memory::MEMORY_SIZE - memory::PROGRAM_LOAD_ADDRESS {
-            panic!("ROM too big, aborting")
+            return Err("ROM too big, aborting".to_string());
         }
 
         for (i, byte) in rom.iter().enumerate() {
             self.memory.set(memory::PROGRAM_LOAD_ADDRESS + i, *byte);
         }
 
-        rom_length
+        Ok(rom_length)
     }
 
     pub fn exec(&mut self) {

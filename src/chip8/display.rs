@@ -15,7 +15,7 @@ impl Screen {
         }
     }
 
-    pub fn pixel_set(&mut self, x: usize, y: usize) -> () {
+    pub fn pixel_set(&mut self, x: usize, y: usize) {
         self.pixels[y][x] ^= true;
     }
 
