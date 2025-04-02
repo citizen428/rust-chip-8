@@ -76,18 +76,12 @@ fn run(rom: &str) -> Result<(), String> {
                 Event::KeyDown {
                     keycode: Some(key), ..
                 } => {
-                    if let Some(vkey) = chip8.keyboard.map(key) {
-                        chip8.keyboard.key_down(vkey);
-                        debug_println!("key down: {}", vkey);
-                    }
+                    chip8.keyboard.key_down(key);
                 }
                 Event::KeyUp {
                     keycode: Some(key), ..
                 } => {
-                    if let Some(vkey) = chip8.keyboard.map(key) {
-                        chip8.keyboard.key_up(vkey);
-                        debug_println!("key up: {}", vkey);
-                    }
+                    chip8.keyboard.key_up(key);
                 }
                 _ => {}
             }

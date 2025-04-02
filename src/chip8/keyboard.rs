@@ -1,3 +1,4 @@
+use debug_print::debug_println;
 use sdl2::keyboard::Keycode;
 
 const KEYS: usize = 16;
@@ -13,7 +14,31 @@ impl Keyboard {
         }
     }
 
-    pub fn map(&self, key: Keycode) -> Option<usize> {
+    pub fn key_down(&mut self, key: Keycode) {
+        self.toggle_key(key, true);
+    }
+
+    pub fn key_up(&mut self, key: Keycode) {
+        self.toggle_key(key, false);
+    }
+
+    pub fn toggle_key(&mut self, key: Keycode, is_down: bool) {
+        // Ignore all keys that aren't mapped to the CHIP-8 hex keyboard.
+        if let Some(key_index) = self.map(key) {
+            self.keyboard[key_index] = is_down;
+            if is_down {
+                debug_println!("key down: {}", key_index);
+            } else {
+                debug_println!("key up: {}", key_index);
+            }
+        }
+    }
+
+    pub fn is_key_down(&self, key: usize) -> bool {
+        self.keyboard[key]
+    }
+
+    fn map(&self, key: Keycode) -> Option<usize> {
         match key {
             Keycode::Num1 => Some(1),
             Keycode::Num2 => Some(2),
@@ -34,18 +59,6 @@ impl Keyboard {
             _ => None,
         }
     }
-
-    pub fn key_down(&mut self, key: usize) {
-        self.keyboard[key] = true
-    }
-
-    pub fn key_up(&mut self, key: usize) {
-        self.keyboard[key] = false
-    }
-
-    pub fn is_key_down(&self, key: usize) -> bool {
-        self.keyboard[key]
-    }
 }
 
 #[cfg(test)]
@@ -62,9 +75,10 @@ mod tests {
     #[test]
     fn it_can_press_and_release_keys() {
         let mut keyboard = Keyboard::new();
-        keyboard.key_down(1);
+        assert!(!keyboard.is_key_down(1));
+        keyboard.key_down(Keycode::Num1);
         assert!(keyboard.is_key_down(1));
-        keyboard.key_up(1);
+        keyboard.key_up(Keycode::Num1);
         assert!(!keyboard.is_key_down(1));
     }
 }
