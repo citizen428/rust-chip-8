@@ -12,8 +12,8 @@ pub struct Registers {
     sp: u8,
 }
 
-impl Registers {
-    pub fn new() -> Self {
+impl Default for Registers {
+    fn default() -> Self {
         Registers {
             v: [0; DATA_REGISTERS],
             i: 0,
@@ -22,6 +22,12 @@ impl Registers {
             pc: memory::PROGRAM_LOAD_ADDRESS as u16,
             sp: 0,
         }
+    }
+}
+
+impl Registers {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn get_v(&self, n: usize) -> u8 {
