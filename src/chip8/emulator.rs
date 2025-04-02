@@ -69,7 +69,7 @@ impl Chip8 {
     pub fn exec(&mut self) {
         let pc = self.registers.get_pc();
         let opcode = self.memory.read_opcode(pc as usize);
-        let instruction = Instruction::parse(opcode);
+        let instruction = Instruction::from(opcode);
         self.registers.advance_pc();
 
         match instruction.nibbles {
