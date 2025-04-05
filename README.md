@@ -9,17 +9,21 @@ This is mapped to the physical keyboard as shown on the right.
 
 ```
 |---|---|---|---|               |---|---|---|---|
-| 1 | 2 | 3 | C |               | 1 | 2 | 3 | 4 |
-|---|---|---|---|               |---|---|---|---|
-| 4 | 5 | 6 | D |               | Q | W | E | R |
-|---|---|---|---|               |---|---|---|---|
-| 7 | 8 | 0 | E |               | A | S | D | F |
-|---|---|---|---|               |---|---|---|---|
-| A | 0 | B | F |               | Z | X | C | V |
-|---|---|---|---|               |---|---|---|---|
+| 1   | 2   | 3   | C   |  | 1 | 2 | 3 | 4 |
+| --- | --- | --- | --- ||---|---|---|---|
+| 4   | 5   | 6   | D   |  | Q | W | E | R |
+| --- | --- | --- | --- ||---|---|---|---|
+| 7   | 8   | 0   | E   |  | A | S | D | F |
+| --- | --- | --- | --- ||---|---|---|---|
+| A   | 0   | B   | F   |  | Z | X | C | V |
+| --- | --- | --- | --- ||---|---|---|---|
 ```
 
 So to get "deadbeef" inside the emulator you'd have to type "rfzrcffv".
+
+## Resources
+
+* [Guide to making a CHIP-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator)
 
 ## License
 
