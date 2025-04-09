@@ -1,7 +1,8 @@
 pub const MEMORY_SIZE: usize = 4096;
 pub const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 
-const DEFAULT_CHARACTER_SET_START: usize = 0;
+// Storing the character set at 0x50 – 0x09f is a sort of convention.
+const DEFAULT_CHARACTER_SET_START: usize = 0x50;
 
 static DEFAULT_CHARACTER_SET: [u8; 80] = [
     0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
@@ -87,13 +88,13 @@ mod tests {
     #[test]
     fn it_contains_the_default_character_set() {
         let memory = Memory::new();
-        assert_eq!(memory.memory[0..5], [0xf0, 0x90, 0x90, 0x90, 0xf0])
+        assert_eq!(memory.memory[0x50..0x55], [0xf0, 0x90, 0x90, 0x90, 0xf0])
     }
 
     #[test]
     fn it_returns_a_slice_of_memory() {
         let memory = Memory::new();
-        let slice = memory.read(0, 5);
+        let slice = memory.read(0x50, 5);
         assert_eq!(slice.len(), 5);
         assert_eq!(slice, [0xf0, 0x90, 0x90, 0x90, 0xf0]);
     }
