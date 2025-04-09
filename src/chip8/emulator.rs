@@ -198,10 +198,9 @@ impl Chip8 {
             // SHL Vx {, Vy}: set Vx = Vx SHL 1
             (0x08, _, _, 0x0E) => {
                 let x = self.registers.get_v(instruction.x);
-                let msb = 1 << 7;
-
-                self.registers.set_carry_if(x & msb == 1);
-                self.registers.set_v(instruction.x, x << 1);
+                let msb = (x & 0x80) >> 7; // Extract the MSB (most significant bit)
+                self.registers.set_v(0xF, msb); // Set VF to the MSB
+                self.registers.set_v(instruction.x, x << 1); // Perform the left shift
             }
 
             // SNE Vx, Vy: skip next instruction if Vx != Vy
