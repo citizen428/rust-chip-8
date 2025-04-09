@@ -307,10 +307,9 @@ impl Chip8 {
             // LD [I], Vx: store registers V0 through Vx in memory starting at
             // location I.
             (0x0F, _, 0x05, 0x05) => {
-                let x = self.registers.get_v(instruction.x) as usize;
                 let i = self.registers.get_i() as usize;
 
-                for n in 0..=x {
+                for n in 0..=instruction.x {
                     self.memory.set(i + n, self.registers.get_v(n));
                 }
             }
@@ -318,10 +317,9 @@ impl Chip8 {
             // LD Vx, [I]: read registers V0 through Vx from memory starting at
             // location I
             (0x0F, _, 0x06, 0x05) => {
-                let x = self.registers.get_v(instruction.x) as usize;
                 let i = self.registers.get_i() as usize;
 
-                for n in 0..x {
+                for n in 0..=instruction.x {
                     let value = self.memory.get(i + n);
                     self.registers.set_v(n, value);
                 }
