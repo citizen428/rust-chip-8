@@ -228,7 +228,7 @@ impl Chip8 {
                 self.registers.set_v(instruction.x, n & instruction.byte);
             }
 
-            //DRW Vx, Vy, nibble: display n-byte sprite starting at memory
+            // DRW Vx, Vy, nibble: display n-byte sprite starting at memory
             // location I at (Vx, Vy), set VF = collision.
             (0x0D, _, _, _) => {
                 let x = self.registers.get_v(instruction.x) as usize;
