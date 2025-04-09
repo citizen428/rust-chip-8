@@ -56,14 +56,11 @@ fn run(rom: &str) -> Result<(), String> {
         .build()
         .expect("Could not make a canvas");
 
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
+    canvas.present();
 
     let mut event_pump = sdl_context.event_pump()?;
 
     'mainloop: loop {
-        canvas.set_draw_color(Color::RGB(255, 255, 255));
-
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -87,14 +84,19 @@ fn run(rom: &str) -> Result<(), String> {
             }
         }
 
-        canvas.present();
         chip8.handle_delay_timer();
         chip8.handle_sound_timer();
         chip8.exec();
 
+        // Clear the canvas to black before rendering each frame
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.clear();
+
+        // Render only the pixels that are set
         for y in 0..display::HEIGHT {
             for x in 0..display::WIDTH {
                 if chip8.screen.is_pixel_set(x, y) {
+                    canvas.set_draw_color(Color::RGB(255, 255, 255));
                     canvas.fill_rect(Rect::new(
                         (x as u32 * display::SCALE_FACTOR) as i32,
                         (y as u32 * display::SCALE_FACTOR) as i32,
@@ -104,6 +106,8 @@ fn run(rom: &str) -> Result<(), String> {
                 }
             }
         }
+
+        canvas.present();
     }
 
     Ok(())
