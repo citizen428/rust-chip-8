@@ -1,7 +1,6 @@
 mod chip8;
 
-use chip8::display;
-use chip8::emulator::Chip8;
+use chip8::emulator::{Chip8, DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
 use debug_print::{debug_eprintln, debug_print, debug_println};
 use sdl2::event::Event;
@@ -11,7 +10,11 @@ use sdl2::rect::Rect;
 
 use std::env;
 
-const EMULATOR_WINDOW_TITLE: &str = "Rust CHIP-8";
+const WINDOW_TITLE: &str = "Rust CHIP-8";
+// Each CHIP-8 pixel gets rendered as a 10x10 square
+const SCALE_FACTOR: u32 = 10;
+const WINDOW_WIDTH: u32 = DISPLAY_WIDTH as u32 * SCALE_FACTOR;
+const WINDOW_HEIGHT: u32 = DISPLAY_HEIGHT as u32 * SCALE_FACTOR;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -42,11 +45,7 @@ fn run(rom: &str) -> Result<(), String> {
     debug_println!("Done ({} bytes)", bytes);
 
     let window = video_subsystem
-        .window(
-            EMULATOR_WINDOW_TITLE,
-            display::WINDOW_WIDTH,
-            display::WINDOW_HEIGHT,
-        )
+        .window(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
         .build()
         .expect("Could not initialize video subsystem");
@@ -93,16 +92,11 @@ fn run(rom: &str) -> Result<(), String> {
         canvas.clear();
 
         // Render only the pixels that are set
-        for y in 0..display::HEIGHT {
-            for x in 0..display::WIDTH {
-                if chip8.screen.is_pixel_set(x, y) {
+        for y in 0..DISPLAY_HEIGHT {
+            for x in 0..DISPLAY_WIDTH {
+                if chip8.is_pixel_set(x, y) {
                     canvas.set_draw_color(Color::RGB(255, 255, 255));
-                    canvas.fill_rect(Rect::new(
-                        (x as u32 * display::SCALE_FACTOR) as i32,
-                        (y as u32 * display::SCALE_FACTOR) as i32,
-                        display::SCALE_FACTOR,
-                        display::SCALE_FACTOR,
-                    ))?;
+                    canvas.fill_rect(scaled_rect(x, y))?;
                 }
             }
         }
@@ -111,4 +105,13 @@ fn run(rom: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+fn scaled_rect(x: usize, y: usize) -> Rect {
+    Rect::new(
+        (x as u32 * SCALE_FACTOR) as i32,
+        (y as u32 * SCALE_FACTOR) as i32,
+        SCALE_FACTOR,
+        SCALE_FACTOR,
+    )
 }

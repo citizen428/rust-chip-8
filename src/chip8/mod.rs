@@ -1,5 +1,4 @@
 pub mod audio;
-pub mod display;
 pub mod emulator;
 pub mod instruction;
 pub mod keyboard;

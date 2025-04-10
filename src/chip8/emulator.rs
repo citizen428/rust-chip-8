@@ -1,5 +1,4 @@
 use crate::chip8::audio::Speaker;
-use crate::chip8::display::Screen;
 use crate::chip8::instruction::Instruction;
 use crate::chip8::keyboard::Keyboard;
 use crate::chip8::memory::{self, Memory};
@@ -8,15 +7,17 @@ use crate::chip8::stack::Stack;
 
 use rand;
 use sdl2::AudioSubsystem;
-
 use std::{fs, thread, time::Duration};
+
+pub const DISPLAY_WIDTH: usize = 64;
+pub const DISPLAY_HEIGHT: usize = 32;
 
 pub struct Chip8 {
     pub memory: Memory,
     pub registers: Registers,
     pub stack: Stack,
     pub keyboard: Keyboard,
-    pub screen: Screen,
+    screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     pub speaker: Speaker,
 }
 
@@ -30,7 +31,7 @@ impl Chip8 {
             registers: Registers::new(),
             stack: Stack::new(),
             keyboard: Keyboard::new(),
-            screen: Screen::new(),
+            screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             speaker: Speaker::new(audio_subsystem),
         }
     }
@@ -74,7 +75,7 @@ impl Chip8 {
 
         match instruction.nibbles {
             // CLS: clear the display
-            (0x00, 0x00, 0x0E, 0x00) => self.screen.clear(),
+            (0x00, 0x00, 0x0E, 0x00) => self.clear_screen(),
 
             // RET: return from subroutine
             (0x00, 0x00, 0x0E, 0x0E) => {
@@ -234,9 +235,9 @@ impl Chip8 {
                 let x = self.registers.get_v(instruction.x) as usize;
                 let y = self.registers.get_v(instruction.y) as usize;
                 let start = self.registers.get_i() as usize;
-                let sprite = &self.memory.read(start, instruction.nibble);
+                let sprite: Vec<u8> = self.memory.read(start, instruction.nibble).to_vec();
 
-                let collission = self.screen.draw_sprite(x, y, sprite);
+                let collission = self.draw_sprite(x, y, &sprite);
                 self.registers.set_carry_if(collission);
             }
 
@@ -327,5 +328,65 @@ impl Chip8 {
 
             _ => eprintln!("Invalid instruction"),
         }
+    }
+
+    // region: Display functions
+    pub fn is_pixel_set(&self, x: usize, y: usize) -> bool {
+        self.screen[y][x]
+    }
+
+    fn toggle_pixel(&mut self, x: usize, y: usize) {
+        self.screen[y][x] ^= true;
+    }
+
+    fn draw_sprite(&mut self, x: usize, y: usize, sprite: &[u8]) -> bool {
+        let mut pixel_collission = false;
+
+        for ly in 0..sprite.len() {
+            let b = sprite[ly];
+            for lx in 0..8 {
+                if b & 0b10000000 >> lx > 0 {
+                    let dx = (x + lx) % DISPLAY_WIDTH;
+                    let dy = (y + ly) % DISPLAY_HEIGHT;
+                    pixel_collission = pixel_collission || self.is_pixel_set(dx, dy);
+
+                    self.toggle_pixel(dx, dy);
+                }
+            }
+        }
+
+        pixel_collission
+    }
+
+    fn clear_screen(&mut self) {
+        self.screen = [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+    }
+    // endregion
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn new_chip8() -> Chip8 {
+        let sdl_context = sdl2::init().unwrap();
+        Chip8::new(&sdl_context.audio().unwrap())
+    }
+
+    #[test]
+    fn it_can_toggle_a_pixel() {
+        let mut chip8 = new_chip8();
+        assert_eq!(chip8.is_pixel_set(5, 5), false);
+        chip8.toggle_pixel(5, 5);
+        assert_eq!(chip8.is_pixel_set(5, 5), true);
+        chip8.toggle_pixel(5, 5);
+        assert_eq!(chip8.is_pixel_set(5, 5), false);
+    }
+
+    #[test]
+    fn it_returns_true_when_overwriting() {
+        let mut chip8 = new_chip8();
+        assert_eq!(chip8.draw_sprite(0, 0, &[0xff]), false);
+        assert_eq!(chip8.draw_sprite(0, 0, &[0xff]), true);
     }
 }
