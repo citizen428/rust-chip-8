@@ -9,7 +9,6 @@ pub struct Registers {
     delay_timer: u8,
     sound_timer: u8,
     pc: u16,
-    sp: u8,
 }
 
 impl Default for Registers {
@@ -20,7 +19,6 @@ impl Default for Registers {
             delay_timer: 0,
             sound_timer: 0,
             pc: memory::PROGRAM_LOAD_ADDRESS as u16,
-            sp: 0,
         }
     }
 }
@@ -80,18 +78,6 @@ impl Registers {
 
     pub fn advance_pc(&mut self) {
         self.pc += instruction::INSTRUCTION_LENGTH;
-    }
-
-    pub fn get_sp(&self) -> u8 {
-        self.sp
-    }
-
-    pub fn inc_sp(&mut self) {
-        self.sp += 1;
-    }
-
-    pub fn dec_sp(&mut self) {
-        self.sp -= 1;
     }
 
     pub fn set_carry_if(&mut self, condition: bool) {

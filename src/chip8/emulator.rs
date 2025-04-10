@@ -2,7 +2,6 @@ use crate::chip8::audio::Speaker;
 use crate::chip8::instruction::Instruction;
 use crate::chip8::memory::{self, Memory};
 use crate::chip8::registers::Registers;
-use crate::chip8::stack::Stack;
 
 use debug_print::debug_println;
 use rand;
@@ -14,11 +13,13 @@ pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
 const KEYS: usize = 16;
+const STACK_DEPTH: usize = 16;
 
 pub struct Chip8 {
     pub memory: Memory,
     pub registers: Registers,
-    pub stack: Stack,
+    stack: [u16; STACK_DEPTH],
+    sp: u8,
     pub keyboard: [bool; KEYS],
     screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     pub speaker: Speaker,
@@ -32,7 +33,8 @@ impl Chip8 {
         Chip8 {
             memory: Memory::new(),
             registers: Registers::new(),
-            stack: Stack::new(),
+            stack: [0; STACK_DEPTH],
+            sp: 0,
             keyboard: [false; KEYS],
             screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             speaker: Speaker::new(audio_subsystem),
@@ -82,7 +84,7 @@ impl Chip8 {
 
             // RET: return from subroutine
             (0x00, 0x00, 0x0E, 0x0E) => {
-                let new_pc = self.stack.pop(&mut self.registers);
+                let new_pc = self.stack_pop();
                 self.registers.set_pc(new_pc);
             }
 
@@ -92,7 +94,7 @@ impl Chip8 {
             // CALL addr: call subroutine at addr
             (0x02, _, _, _) => {
                 let pc = self.registers.get_pc();
-                self.stack.push(&mut self.registers, pc);
+                self.stack_push(pc);
                 self.registers.set_pc(instruction.addr);
             }
 
@@ -413,6 +415,35 @@ impl Chip8 {
         }
     }
     // endregion
+
+    // region: Stack functions
+    fn get_sp(&self) -> u8 {
+        self.sp
+    }
+
+    fn inc_sp(&mut self) {
+        self.sp += 1;
+    }
+
+    fn dec_sp(&mut self) {
+        self.sp -= 1;
+    }
+
+    fn stack_push(&mut self, value: u16) {
+        let stack_pointer = self.get_sp() as usize;
+        assert!(stack_pointer < STACK_DEPTH, "stack overflow");
+        self.stack[stack_pointer] = value;
+        self.inc_sp();
+    }
+
+    fn stack_pop(&mut self) -> u16 {
+        let stack_pointer = self.get_sp() as usize;
+        assert!(stack_pointer > 0, "stack underflow");
+        self.dec_sp();
+        assert!(stack_pointer < STACK_DEPTH, "stack overflow");
+        self.stack[self.get_sp() as usize]
+    }
+    // endregion
 }
 
 #[cfg(test)]
@@ -457,5 +488,22 @@ mod tests {
         assert_eq!(chip8.is_key_down(1), true);
         chip8.key_up(Keycode::Num1);
         assert_eq!(chip8.is_key_down(1), false);
+    }
+
+    #[test]
+    fn it_can_push_to_and_pop_from_the_stack() {
+        let mut chip8 = new_chip8();
+        assert_eq!(chip8.get_sp(), 0);
+        chip8.stack_push(0xff);
+        assert_eq!(chip8.get_sp(), 1);
+        assert_eq!(chip8.stack[0], 0xff);
+
+        chip8.stack_push(0xaa);
+        assert_eq!(chip8.get_sp(), 2);
+        assert_eq!(chip8.stack[1], 0xaa);
+        assert_eq!(chip8.stack_pop(), 170);
+        assert_eq!(chip8.get_sp(), 1);
+        assert_eq!(chip8.stack_pop(), 255);
+        assert_eq!(chip8.get_sp(), 0);
     }
 }
