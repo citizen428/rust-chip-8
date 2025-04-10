@@ -20,7 +20,7 @@ pub struct Chip8 {
     pub registers: Registers,
     stack: [u16; STACK_DEPTH],
     sp: u8,
-    pub keyboard: [bool; KEYS],
+    keyboard: [bool; KEYS],
     screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     pub speaker: Speaker,
 }
