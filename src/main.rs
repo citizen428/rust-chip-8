@@ -72,12 +72,12 @@ fn run(rom: &str) -> Result<(), String> {
                 Event::KeyDown {
                     keycode: Some(key), ..
                 } => {
-                    chip8.keyboard.key_down(key);
+                    chip8.key_down(key);
                 }
                 Event::KeyUp {
                     keycode: Some(key), ..
                 } => {
-                    chip8.keyboard.key_up(key);
+                    chip8.key_up(key);
                 }
                 _ => {}
             }

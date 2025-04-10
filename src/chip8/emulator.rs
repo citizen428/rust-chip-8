@@ -1,22 +1,25 @@
 use crate::chip8::audio::Speaker;
 use crate::chip8::instruction::Instruction;
-use crate::chip8::keyboard::Keyboard;
 use crate::chip8::memory::{self, Memory};
 use crate::chip8::registers::Registers;
 use crate::chip8::stack::Stack;
 
+use debug_print::debug_println;
 use rand;
 use sdl2::AudioSubsystem;
+use sdl2::keyboard::Keycode;
 use std::{fs, thread, time::Duration};
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
+const KEYS: usize = 16;
+
 pub struct Chip8 {
     pub memory: Memory,
     pub registers: Registers,
     pub stack: Stack,
-    pub keyboard: Keyboard,
+    pub keyboard: [bool; KEYS],
     screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     pub speaker: Speaker,
 }
@@ -30,7 +33,7 @@ impl Chip8 {
             memory: Memory::new(),
             registers: Registers::new(),
             stack: Stack::new(),
-            keyboard: Keyboard::new(),
+            keyboard: [false; KEYS],
             screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             speaker: Speaker::new(audio_subsystem),
         }
@@ -245,7 +248,7 @@ impl Chip8 {
             // pressed
             (0x0E, _, 0x09, 0x0E) => {
                 let x = self.registers.get_v(instruction.x) as usize;
-                if self.keyboard.is_key_down(x) {
+                if self.is_key_down(x) {
                     self.registers.advance_pc();
                 }
             }
@@ -254,7 +257,7 @@ impl Chip8 {
             // not pressed
             (0x0E, _, 0x0A, 0x01) => {
                 let x = self.registers.get_v(instruction.x) as usize;
-                if !self.keyboard.is_key_down(x) {
+                if !self.is_key_down(x) {
                     self.registers.advance_pc();
                 }
             }
@@ -362,6 +365,54 @@ impl Chip8 {
         self.screen = [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
     }
     // endregion
+
+    // region: Keyboard functions
+    pub fn key_down(&mut self, key: Keycode) {
+        self.toggle_key(key, true);
+    }
+
+    pub fn key_up(&mut self, key: Keycode) {
+        self.toggle_key(key, false);
+    }
+
+    fn toggle_key(&mut self, key: Keycode, is_down: bool) {
+        // Ignore all keys that aren't mapped to the CHIP-8 hex keyboard.
+        if let Some(key_index) = self.map(key) {
+            self.keyboard[key_index] = is_down;
+            if is_down {
+                debug_println!("key down: {}", key_index);
+            } else {
+                debug_println!("key up: {}", key_index);
+            }
+        }
+    }
+
+    fn is_key_down(&self, key: usize) -> bool {
+        self.keyboard[key]
+    }
+
+    fn map(&self, key: Keycode) -> Option<usize> {
+        match key {
+            Keycode::Num1 => Some(1),
+            Keycode::Num2 => Some(2),
+            Keycode::Num3 => Some(3),
+            Keycode::Num4 => Some(12),
+            Keycode::Q => Some(4),
+            Keycode::W => Some(5),
+            Keycode::E => Some(6),
+            Keycode::R => Some(13),
+            Keycode::A => Some(7),
+            Keycode::S => Some(8),
+            Keycode::D => Some(9),
+            Keycode::F => Some(14),
+            Keycode::Z => Some(10),
+            Keycode::X => Some(0),
+            Keycode::C => Some(11),
+            Keycode::V => Some(15),
+            _ => None,
+        }
+    }
+    // endregion
 }
 
 #[cfg(test)]
@@ -374,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn it_can_toggle_a_pixel() {
+    fn toggle_pixel_can_toggle_a_pixel() {
         let mut chip8 = new_chip8();
         assert_eq!(chip8.is_pixel_set(5, 5), false);
         chip8.toggle_pixel(5, 5);
@@ -384,9 +435,27 @@ mod tests {
     }
 
     #[test]
-    fn it_returns_true_when_overwriting() {
+    fn draw_sprite_returns_true_when_overwriting() {
         let mut chip8 = new_chip8();
         assert_eq!(chip8.draw_sprite(0, 0, &[0xff]), false);
         assert_eq!(chip8.draw_sprite(0, 0, &[0xff]), true);
+    }
+
+    #[test]
+    fn it_maps_physical_keys_to_virtual_ones() {
+        let chip8 = new_chip8();
+        assert_eq!(chip8.map(Keycode::A), Some(7));
+        assert_eq!(chip8.map(Keycode::X), Some(0));
+        assert_eq!(chip8.map(Keycode::M), None);
+    }
+
+    #[test]
+    fn it_can_press_and_release_keys() {
+        let mut chip8 = new_chip8();
+        assert_eq!(chip8.is_key_down(1), false);
+        chip8.key_down(Keycode::Num1);
+        assert_eq!(chip8.is_key_down(1), true);
+        chip8.key_up(Keycode::Num1);
+        assert_eq!(chip8.is_key_down(1), false);
     }
 }
