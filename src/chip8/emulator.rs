@@ -6,7 +6,7 @@ use crate::chip8::registers::Registers;
 use debug_print::debug_println;
 use rand;
 use sdl2::AudioSubsystem;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::Scancode;
 use std::{fs, thread, time::Duration};
 
 pub const DISPLAY_WIDTH: usize = 64;
@@ -369,15 +369,15 @@ impl Chip8 {
     // endregion
 
     // region: Keyboard functions
-    pub fn key_down(&mut self, key: Keycode) {
+    pub fn key_down(&mut self, key: Scancode) {
         self.toggle_key(key, true);
     }
 
-    pub fn key_up(&mut self, key: Keycode) {
+    pub fn key_up(&mut self, key: Scancode) {
         self.toggle_key(key, false);
     }
 
-    fn toggle_key(&mut self, key: Keycode, is_down: bool) {
+    fn toggle_key(&mut self, key: Scancode, is_down: bool) {
         // Ignore all keys that aren't mapped to the CHIP-8 hex keyboard.
         if let Some(key_index) = self.map(key) {
             self.keyboard[key_index] = is_down;
@@ -393,24 +393,24 @@ impl Chip8 {
         self.keyboard[key]
     }
 
-    fn map(&self, key: Keycode) -> Option<usize> {
+    fn map(&self, key: Scancode) -> Option<usize> {
         match key {
-            Keycode::Num1 => Some(1),
-            Keycode::Num2 => Some(2),
-            Keycode::Num3 => Some(3),
-            Keycode::Num4 => Some(12),
-            Keycode::Q => Some(4),
-            Keycode::W => Some(5),
-            Keycode::E => Some(6),
-            Keycode::R => Some(13),
-            Keycode::A => Some(7),
-            Keycode::S => Some(8),
-            Keycode::D => Some(9),
-            Keycode::F => Some(14),
-            Keycode::Z => Some(10),
-            Keycode::X => Some(0),
-            Keycode::C => Some(11),
-            Keycode::V => Some(15),
+            Scancode::Num1 => Some(1),
+            Scancode::Num2 => Some(2),
+            Scancode::Num3 => Some(3),
+            Scancode::Num4 => Some(12),
+            Scancode::Q => Some(4),
+            Scancode::W => Some(5),
+            Scancode::E => Some(6),
+            Scancode::R => Some(13),
+            Scancode::A => Some(7),
+            Scancode::S => Some(8),
+            Scancode::D => Some(9),
+            Scancode::F => Some(14),
+            Scancode::Z => Some(10),
+            Scancode::X => Some(0),
+            Scancode::C => Some(11),
+            Scancode::V => Some(15),
             _ => None,
         }
     }
@@ -475,18 +475,18 @@ mod tests {
     #[test]
     fn it_maps_physical_keys_to_virtual_ones() {
         let chip8 = new_chip8();
-        assert_eq!(chip8.map(Keycode::A), Some(7));
-        assert_eq!(chip8.map(Keycode::X), Some(0));
-        assert_eq!(chip8.map(Keycode::M), None);
+        assert_eq!(chip8.map(Scancode::A), Some(7));
+        assert_eq!(chip8.map(Scancode::X), Some(0));
+        assert_eq!(chip8.map(Scancode::M), None);
     }
 
     #[test]
     fn it_can_press_and_release_keys() {
         let mut chip8 = new_chip8();
         assert_eq!(chip8.is_key_down(1), false);
-        chip8.key_down(Keycode::Num1);
+        chip8.key_down(Scancode::Num1);
         assert_eq!(chip8.is_key_down(1), true);
-        chip8.key_up(Keycode::Num1);
+        chip8.key_up(Scancode::Num1);
         assert_eq!(chip8.is_key_down(1), false);
     }
 

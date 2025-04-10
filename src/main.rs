@@ -4,7 +4,7 @@ use chip8::emulator::{Chip8, DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
 use debug_print::{debug_eprintln, debug_print, debug_println};
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
@@ -64,18 +64,20 @@ fn run(rom: &str) -> Result<(), String> {
             match event {
                 Event::Quit { .. }
                 | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
+                    scancode: Some(Scancode::Escape),
                     ..
                 } => {
                     break 'mainloop;
                 }
                 Event::KeyDown {
-                    keycode: Some(key), ..
+                    scancode: Some(key),
+                    ..
                 } => {
                     chip8.key_down(key);
                 }
                 Event::KeyUp {
-                    keycode: Some(key), ..
+                    scancode: Some(key),
+                    ..
                 } => {
                     chip8.key_up(key);
                 }
