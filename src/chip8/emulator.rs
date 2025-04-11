@@ -1,6 +1,5 @@
 use crate::chip8::audio::Speaker;
 use crate::chip8::instruction::Instruction;
-use crate::chip8::memory::{self, Memory};
 use crate::chip8::registers::Registers;
 
 use debug_print::debug_println;
@@ -12,14 +11,36 @@ use std::{fs, thread, time::Duration};
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
+const DEFAULT_CHARACTER_SET_SIZE: usize = 80;
+const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
+    0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xf0, 0x10, 0xf0, 0x80, 0xf0, // 2
+    0xf0, 0x10, 0xf0, 0x10, 0xf0, // 3
+    0x90, 0x90, 0xf0, 0x10, 0x10, // 4
+    0xf0, 0x80, 0xf0, 0x10, 0xf0, // 5
+    0xf0, 0x80, 0xf0, 0x90, 0xf0, // 6
+    0xf0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xf0, 0x90, 0xf0, 0x90, 0xf0, // 8
+    0xf0, 0x90, 0xf0, 0x10, 0xf0, // 9
+    0xf0, 0x90, 0xf0, 0x90, 0x90, // A
+    0xe0, 0x90, 0xe0, 0x90, 0xe0, // B
+    0xf0, 0x80, 0x80, 0x80, 0xf0, // C
+    0xe0, 0x90, 0x90, 0x90, 0xe0, // D
+    0xf0, 0x80, 0xf0, 0x80, 0xf0, // E
+    0xf0, 0x80, 0xf0, 0x80, 0x80, // F
+];
+
 const INSTRUCTION_LENGTH: u16 = 2;
 const KEYS: usize = 16;
-const PROGRAM_LOAD_ADDRESS: u16 = 0x200;
+const MEMORY_SIZE: usize = 4096;
+const PROGRAM_LOAD_ADDRESS: usize = 0x200;
+const RAM_SIZE: usize = 4096;
 const STACK_DEPTH: usize = 16;
 
 pub struct Chip8 {
     pc: u16,
-    pub memory: Memory,
+    ram: [u8; RAM_SIZE],
     pub registers: Registers,
     stack: [u16; STACK_DEPTH],
     sp: u8,
@@ -33,19 +54,41 @@ const REFRESH_DURATION: Duration = Duration::from_millis(1000 / 60);
 
 impl Chip8 {
     pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
-        Chip8 {
-            pc: PROGRAM_LOAD_ADDRESS,
-            memory: Memory::new(),
+        let mut chip8 = Chip8 {
+            pc: PROGRAM_LOAD_ADDRESS as u16,
+            ram: [0; RAM_SIZE],
             registers: Registers::new(),
             stack: [0; STACK_DEPTH],
             sp: 0,
             keyboard: [false; KEYS],
             screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             speaker: Speaker::new(audio_subsystem),
-        }
+        };
+
+        // Initialize the default character set in memory
+        chip8.ram[..DEFAULT_CHARACTER_SET_SIZE].copy_from_slice(&DEFAULT_CHARACTER_SET);
+
+        chip8
     }
 
-    pub fn handle_delay_timer(&mut self) {
+    pub fn load_rom(&mut self, file: &str) -> Result<usize, String> {
+        let rom = fs::read(file).map_err(|e| format!("Cannot read ROM: {}", e))?;
+        let rom_length = rom.len();
+
+        if rom_length > MEMORY_SIZE - PROGRAM_LOAD_ADDRESS {
+            return Err("ROM too big, aborting".to_string());
+        }
+        self.ram[PROGRAM_LOAD_ADDRESS as usize..][..rom_length].copy_from_slice(&rom);
+
+        Ok(rom_length)
+    }
+
+    pub fn update_timers(&mut self) {
+        self.handle_delay_timer();
+        self.handle_sound_timer();
+    }
+
+    fn handle_delay_timer(&mut self) {
         if self.registers.get_dt() > 0 {
             thread::sleep(REFRESH_DURATION);
             self.registers.dec_dt();
@@ -77,7 +120,7 @@ impl Chip8 {
     }
 
     pub fn exec(&mut self) {
-        let opcode = self.memory.read_opcode(self.pc as usize);
+        let opcode = self.read_opcode(self.pc as usize);
         let instruction = Instruction::from(opcode);
         self.advance_pc();
 
@@ -238,7 +281,7 @@ impl Chip8 {
                 let x = self.registers.get_v(instruction.x) as usize;
                 let y = self.registers.get_v(instruction.y) as usize;
                 let start = self.registers.get_i() as usize;
-                let sprite: Vec<u8> = self.memory.read(start, instruction.nibble).to_vec();
+                let sprite: Vec<u8> = self.ram_read(start, instruction.nibble).to_vec();
 
                 let collission = self.draw_sprite(x, y, &sprite);
                 self.registers.set_carry_if(collission);
@@ -303,9 +346,9 @@ impl Chip8 {
                 let x = self.registers.get_v(instruction.x) as u16;
                 let i = self.registers.get_i() as usize;
 
-                self.memory.set(i, (x / 100) as u8);
-                self.memory.set(i + 1, ((x % 100) / 10) as u8);
-                self.memory.set(i + 2, (x % 10) as u8)
+                self.ram[i] = (x / 100) as u8;
+                self.ram[i + 1] = ((x % 100) / 10) as u8;
+                self.ram[i + 2] = (x % 10) as u8;
             }
 
             // LD [I], Vx: store registers V0 through Vx in memory starting at
@@ -314,7 +357,7 @@ impl Chip8 {
                 let i = self.registers.get_i() as usize;
 
                 for n in 0..=instruction.x {
-                    self.memory.set(i + n, self.registers.get_v(n));
+                    self.ram[i + n] = self.registers.get_v(n);
                 }
             }
 
@@ -324,8 +367,7 @@ impl Chip8 {
                 let i = self.registers.get_i() as usize;
 
                 for n in 0..=instruction.x {
-                    let value = self.memory.get(i + n);
-                    self.registers.set_v(n, value);
+                    self.registers.set_v(n, self.ram[i + n]);
                 }
             }
 
@@ -429,6 +471,15 @@ impl Chip8 {
     fn advance_pc(&mut self) {
         self.pc += INSTRUCTION_LENGTH;
     }
+
+    fn ram_read(&self, start: usize, bytes: u8) -> &[u8] {
+        &self.ram[start..start + bytes as usize]
+    }
+
+    fn read_opcode(&self, start: usize) -> u16 {
+        let bytes = self.ram_read(start, 2);
+        (bytes[0] as u16) << 8 | bytes[1] as u16
+    }
 }
 
 #[cfg(test)]
@@ -490,5 +541,14 @@ mod tests {
         assert_eq!(chip8.sp, 1);
         assert_eq!(chip8.stack_pop(), 255);
         assert_eq!(chip8.sp, 0);
+    }
+
+    #[test]
+    fn it_contains_the_default_character_set() {
+        let chip8 = new_chip8();
+        assert_eq!(
+            chip8.ram[..DEFAULT_CHARACTER_SET_SIZE],
+            DEFAULT_CHARACTER_SET
+        )
     }
 }
