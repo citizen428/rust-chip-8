@@ -3,8 +3,6 @@ const DATA_REGISTERS: usize = 16;
 pub struct Registers {
     v: [u8; DATA_REGISTERS],
     i: u16,
-    delay_timer: u8,
-    sound_timer: u8,
 }
 
 impl Default for Registers {
@@ -12,8 +10,6 @@ impl Default for Registers {
         Registers {
             v: [0; DATA_REGISTERS],
             i: 0,
-            delay_timer: 0,
-            sound_timer: 0,
         }
     }
 }
@@ -37,30 +33,6 @@ impl Registers {
 
     pub fn set_i(&mut self, addr: u16) {
         self.i = addr;
-    }
-
-    pub fn get_dt(&self) -> u8 {
-        self.delay_timer
-    }
-
-    pub fn set_dt(&mut self, value: u8) {
-        self.delay_timer = value;
-    }
-
-    pub fn dec_dt(&mut self) {
-        self.delay_timer -= 1;
-    }
-
-    pub fn get_st(&self) -> u8 {
-        self.sound_timer
-    }
-
-    pub fn set_st(&mut self, value: u8) {
-        self.sound_timer = value;
-    }
-
-    pub fn dec_st(&mut self) {
-        self.sound_timer -= 1;
     }
 
     pub fn set_carry_if(&mut self, condition: bool) {

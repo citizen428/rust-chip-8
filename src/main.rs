@@ -85,9 +85,8 @@ fn run(rom: &str) -> Result<(), String> {
             }
         }
 
-        chip8.handle_delay_timer();
-        chip8.handle_sound_timer();
         chip8.exec();
+        chip8.update_timers();
 
         // Clear the canvas to black before rendering each frame
         canvas.set_draw_color(Color::RGB(0, 0, 0));

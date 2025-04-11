@@ -6,7 +6,7 @@ use debug_print::debug_println;
 use rand;
 use sdl2::AudioSubsystem;
 use sdl2::keyboard::Scancode;
-use std::{fs, thread, time::Duration};
+use std::fs;
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
@@ -44,13 +44,12 @@ pub struct Chip8 {
     pub registers: Registers,
     stack: [u16; STACK_DEPTH],
     sp: u8,
+    dt: u8,
+    st: u8,
     keyboard: [bool; KEYS],
     screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     pub speaker: Speaker,
 }
-
-// Sleep duration for a 60 Hz refresh rate
-const REFRESH_DURATION: Duration = Duration::from_millis(1000 / 60);
 
 impl Chip8 {
     pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
@@ -60,6 +59,8 @@ impl Chip8 {
             registers: Registers::new(),
             stack: [0; STACK_DEPTH],
             sp: 0,
+            dt: 0,
+            st: 0,
             keyboard: [false; KEYS],
             screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             speaker: Speaker::new(audio_subsystem),
@@ -84,39 +85,15 @@ impl Chip8 {
     }
 
     pub fn update_timers(&mut self) {
-        self.handle_delay_timer();
-        self.handle_sound_timer();
-    }
-
-    fn handle_delay_timer(&mut self) {
-        if self.registers.get_dt() > 0 {
-            thread::sleep(REFRESH_DURATION);
-            self.registers.dec_dt();
+        if self.dt > 0 {
+            self.dt -= 1;
         }
-    }
 
-    pub fn handle_sound_timer(&mut self) {
-        let status = self.registers.get_st() > 0;
+        let status = self.st > 0;
         self.speaker.beep(status);
         if status {
-            thread::sleep(REFRESH_DURATION);
-            self.registers.dec_st();
+            self.st -= 1;
         }
-    }
-
-    pub fn load_rom(&mut self, file: &str) -> Result<usize, String> {
-        let rom = fs::read(file).map_err(|e| format!("Cannot read ROM: {}", e))?;
-        let rom_length = rom.len();
-
-        if rom_length > memory::MEMORY_SIZE - memory::PROGRAM_LOAD_ADDRESS {
-            return Err("ROM too big, aborting".to_string());
-        }
-
-        for (i, byte) in rom.iter().enumerate() {
-            self.memory.set(memory::PROGRAM_LOAD_ADDRESS + i, *byte);
-        }
-
-        Ok(rom_length)
     }
 
     pub fn exec(&mut self) {
@@ -307,7 +284,7 @@ impl Chip8 {
 
             // LD Vx, DT: set Vx = delay timer value
             (0x0F, _, 0x00, 0x07) => {
-                self.registers.set_v(instruction.x, self.registers.get_dt());
+                self.registers.set_v(instruction.x, self.dt);
             }
 
             // LD Vx, K: wait for a key press, store the value of the key in V
@@ -316,14 +293,10 @@ impl Chip8 {
             }
 
             // LD DT, Vx
-            (0x0F, _, 0x01, 0x05) => {
-                self.registers.set_dt(self.registers.get_v(instruction.x));
-            }
+            (0x0F, _, 0x01, 0x05) => self.dt = self.registers.get_v(instruction.x),
 
             // LD ST, Vx: set sound timer = Vx
-            (0x0F, _, 0x01, 0x08) => {
-                self.registers.set_st(self.registers.get_v(instruction.x));
-            }
+            (0x0F, _, 0x01, 0x08) => self.st = self.registers.get_v(instruction.x),
 
             // ADD I, Vx: set I = I + Vx
             (0x0F, _, 0x01, 0x0E) => {
