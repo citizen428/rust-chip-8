@@ -417,31 +417,14 @@ impl Chip8 {
     // endregion
 
     // region: Stack functions
-    fn get_sp(&self) -> u8 {
-        self.sp
-    }
-
-    fn inc_sp(&mut self) {
+    fn stack_push(&mut self, value: u16) {
+        self.stack[self.sp as usize] = value;
         self.sp += 1;
     }
 
-    fn dec_sp(&mut self) {
-        self.sp -= 1;
-    }
-
-    fn stack_push(&mut self, value: u16) {
-        let stack_pointer = self.get_sp() as usize;
-        assert!(stack_pointer < STACK_DEPTH, "stack overflow");
-        self.stack[stack_pointer] = value;
-        self.inc_sp();
-    }
-
     fn stack_pop(&mut self) -> u16 {
-        let stack_pointer = self.get_sp() as usize;
-        assert!(stack_pointer > 0, "stack underflow");
-        self.dec_sp();
-        assert!(stack_pointer < STACK_DEPTH, "stack overflow");
-        self.stack[self.get_sp() as usize]
+        self.sp -= 1;
+        self.stack[self.sp as usize]
     }
     // endregion
 }
@@ -493,17 +476,17 @@ mod tests {
     #[test]
     fn it_can_push_to_and_pop_from_the_stack() {
         let mut chip8 = new_chip8();
-        assert_eq!(chip8.get_sp(), 0);
+        assert_eq!(chip8.sp, 0);
         chip8.stack_push(0xff);
-        assert_eq!(chip8.get_sp(), 1);
+        assert_eq!(chip8.sp, 1);
         assert_eq!(chip8.stack[0], 0xff);
 
         chip8.stack_push(0xaa);
-        assert_eq!(chip8.get_sp(), 2);
+        assert_eq!(chip8.sp, 2);
         assert_eq!(chip8.stack[1], 0xaa);
         assert_eq!(chip8.stack_pop(), 170);
-        assert_eq!(chip8.get_sp(), 1);
+        assert_eq!(chip8.sp, 1);
         assert_eq!(chip8.stack_pop(), 255);
-        assert_eq!(chip8.get_sp(), 0);
+        assert_eq!(chip8.sp, 0);
     }
 }
