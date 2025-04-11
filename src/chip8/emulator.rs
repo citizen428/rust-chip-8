@@ -1,5 +1,4 @@
 use crate::chip8::audio::Speaker;
-use crate::chip8::instruction::Instruction;
 use crate::chip8::registers::Registers;
 
 use debug_print::debug_println;
@@ -37,6 +36,35 @@ const MEMORY_SIZE: usize = 4096;
 const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 const RAM_SIZE: usize = 4096;
 const STACK_DEPTH: usize = 16;
+
+struct Instruction {
+    pub nibbles: (u8, u8, u8, u8),
+    pub addr: u16,
+    pub byte: u8,
+    pub x: usize,
+    pub y: usize,
+    pub nibble: u8,
+}
+
+impl From<u16> for Instruction {
+    fn from(instruction: u16) -> Self {
+        let nibbles = (
+            ((instruction & 0xF000) >> 12) as u8,
+            ((instruction & 0x0F00) >> 8) as u8,
+            ((instruction & 0x00F0) >> 4) as u8,
+            (instruction & 0x000F) as u8,
+        );
+
+        Instruction {
+            nibbles,
+            addr: (instruction & 0x0FFF),
+            nibble: nibbles.3,
+            byte: (instruction & 0x00FF) as u8,
+            x: nibbles.1 as usize,
+            y: nibbles.2 as usize,
+        }
+    }
+}
 
 pub struct Chip8 {
     pc: u16,
