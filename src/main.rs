@@ -1,6 +1,6 @@
-mod chip8;
+use crate::chip8::emulator::{Chip8, DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
-use chip8::emulator::{Chip8, DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use std::env;
 
 use debug_print::{debug_eprintln, debug_print, debug_println};
 use sdl2::event::Event;
@@ -8,7 +8,7 @@ use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
-use std::env;
+mod chip8;
 
 const WINDOW_TITLE: &str = "Rust CHIP-8";
 // Each CHIP-8 pixel gets rendered as a 10x10 square

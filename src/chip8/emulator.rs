@@ -1,11 +1,12 @@
 use crate::chip8::audio::Speaker;
 use crate::chip8::registers::Registers;
 
+use std::fs;
+
 use debug_print::debug_println;
 use rand;
 use sdl2::AudioSubsystem;
 use sdl2::keyboard::Scancode;
-use std::fs;
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
@@ -270,9 +271,7 @@ impl Chip8 {
             (0x0A, _, _, _) => self.registers.set_i(instruction.addr),
 
             // JP V0, addr: jump to location nnn + V0
-            (0x0B, _, _, _) => {
-                self.pc = self.registers.get_v(0) as u16 + instruction.addr;
-            }
+            (0x0B, _, _, _) => self.pc = self.registers.get_v(0) as u16 + instruction.addr,
 
             // RND Vx, byte:  et Vx = random byte AND kk.
             (0x0C, _, _, _) => {
@@ -311,9 +310,7 @@ impl Chip8 {
             }
 
             // LD Vx, DT: set Vx = delay timer value
-            (0x0F, _, 0x00, 0x07) => {
-                self.registers.set_v(instruction.x, self.dt);
-            }
+            (0x0F, _, 0x00, 0x07) => self.registers.set_v(instruction.x, self.dt),
 
             // LD Vx, K: wait for a key press, store the value of the key in V
             (0x0F, _, 0x00, 0x0A) => {
