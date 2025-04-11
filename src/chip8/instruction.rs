@@ -1,5 +1,3 @@
-pub const INSTRUCTION_LENGTH: u16 = 2;
-
 pub struct Instruction {
     pub nibbles: (u8, u8, u8, u8),
     pub addr: u16,

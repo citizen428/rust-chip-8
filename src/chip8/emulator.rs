@@ -12,10 +12,13 @@ use std::{fs, thread, time::Duration};
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
+const INSTRUCTION_LENGTH: u16 = 2;
 const KEYS: usize = 16;
+const PROGRAM_LOAD_ADDRESS: u16 = 0x200;
 const STACK_DEPTH: usize = 16;
 
 pub struct Chip8 {
+    pc: u16,
     pub memory: Memory,
     pub registers: Registers,
     stack: [u16; STACK_DEPTH],
@@ -31,6 +34,7 @@ const REFRESH_DURATION: Duration = Duration::from_millis(1000 / 60);
 impl Chip8 {
     pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
         Chip8 {
+            pc: PROGRAM_LOAD_ADDRESS,
             memory: Memory::new(),
             registers: Registers::new(),
             stack: [0; STACK_DEPTH],
@@ -73,36 +77,31 @@ impl Chip8 {
     }
 
     pub fn exec(&mut self) {
-        let pc = self.registers.get_pc();
-        let opcode = self.memory.read_opcode(pc as usize);
+        let opcode = self.memory.read_opcode(self.pc as usize);
         let instruction = Instruction::from(opcode);
-        self.registers.advance_pc();
+        self.advance_pc();
 
         match instruction.nibbles {
             // CLS: clear the display
             (0x00, 0x00, 0x0E, 0x00) => self.clear_screen(),
 
             // RET: return from subroutine
-            (0x00, 0x00, 0x0E, 0x0E) => {
-                let new_pc = self.stack_pop();
-                self.registers.set_pc(new_pc);
-            }
+            (0x00, 0x00, 0x0E, 0x0E) => self.pc = self.stack_pop(),
 
             // JP addr: jump to location addr
-            (0x01, _, _, _) => self.registers.set_pc(instruction.addr),
+            (0x01, _, _, _) => self.pc = instruction.addr,
 
             // CALL addr: call subroutine at addr
             (0x02, _, _, _) => {
-                let pc = self.registers.get_pc();
-                self.stack_push(pc);
-                self.registers.set_pc(instruction.addr);
+                self.stack_push(self.pc);
+                self.pc = instruction.addr;
             }
 
             // SE Vx, byte: skip next instruction if Vx = byte
             (0x03, _, _, _) => {
                 let x = self.registers.get_v(instruction.x);
                 if x == instruction.byte {
-                    self.registers.advance_pc();
+                    self.advance_pc();
                 }
             }
 
@@ -110,7 +109,7 @@ impl Chip8 {
             (0x04, _, _, _) => {
                 let x = self.registers.get_v(instruction.x);
                 if x != instruction.byte {
-                    self.registers.advance_pc();
+                    self.advance_pc();
                 }
             }
 
@@ -120,7 +119,7 @@ impl Chip8 {
                 let y = self.registers.get_v(instruction.y);
 
                 if x == y {
-                    self.registers.advance_pc();
+                    self.advance_pc();
                 }
             }
 
@@ -215,7 +214,7 @@ impl Chip8 {
                 let y = self.registers.get_v(instruction.y);
 
                 if x != y {
-                    self.registers.advance_pc();
+                    self.advance_pc();
                 }
             }
 
@@ -224,8 +223,7 @@ impl Chip8 {
 
             // JP V0, addr: jump to location nnn + V0
             (0x0B, _, _, _) => {
-                self.registers
-                    .set_pc(self.registers.get_v(0) as u16 + instruction.addr);
+                self.pc = self.registers.get_v(0) as u16 + instruction.addr;
             }
 
             // RND Vx, byte:  et Vx = random byte AND kk.
@@ -251,7 +249,7 @@ impl Chip8 {
             (0x0E, _, 0x09, 0x0E) => {
                 let x = self.registers.get_v(instruction.x) as usize;
                 if self.is_key_down(x) {
-                    self.registers.advance_pc();
+                    self.advance_pc();
                 }
             }
 
@@ -260,7 +258,7 @@ impl Chip8 {
             (0x0E, _, 0x0A, 0x01) => {
                 let x = self.registers.get_v(instruction.x) as usize;
                 if !self.is_key_down(x) {
-                    self.registers.advance_pc();
+                    self.advance_pc();
                 }
             }
 
@@ -427,6 +425,10 @@ impl Chip8 {
         self.stack[self.sp as usize]
     }
     // endregion
+
+    fn advance_pc(&mut self) {
+        self.pc += INSTRUCTION_LENGTH;
+    }
 }
 
 #[cfg(test)]
