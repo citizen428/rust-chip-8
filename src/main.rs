@@ -9,11 +9,13 @@ use sdl2::rect::Rect;
 mod chip8;
 mod sdl_speaker;
 
-const WINDOW_TITLE: &str = "Rust CHIP-8";
 // Each CHIP-8 pixel gets rendered as a 10x10 square
 const SCALE_FACTOR: u32 = 10;
 const WINDOW_WIDTH: u32 = chip8::DISPLAY_WIDTH as u32 * SCALE_FACTOR;
 const WINDOW_HEIGHT: u32 = chip8::DISPLAY_HEIGHT as u32 * SCALE_FACTOR;
+const WINDOW_TITLE: &str = "Rust CHIP-8";
+
+const TICKS_PER_FRAME: usize = 10;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -40,10 +42,11 @@ fn run(rom_path: &str) -> Result<(), String> {
 
     let speaker = sdl_speaker::SDLSpeaker::new(&audio_subsystem);
     let mut chip8 = chip8::Chip8::new(Box::new(speaker));
+
     debug_print!("Loading ROM: {}: ", rom_path);
     let rom = fs::read(rom_path).map_err(|e| format!("Cannot read ROM: {}", e))?;
-    let bytes = chip8.load_rom(rom)?;
-    debug_println!("Done ({} bytes)", bytes);
+    let byte_count = chip8.load_rom(rom)?;
+    debug_println!("Done ({} bytes)", byte_count);
 
     let window = video_subsystem
         .window(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -53,6 +56,7 @@ fn run(rom_path: &str) -> Result<(), String> {
 
     let mut canvas = window
         .into_canvas()
+        .present_vsync()
         .build()
         .expect("Could not make a canvas");
 
@@ -90,24 +94,11 @@ fn run(rom_path: &str) -> Result<(), String> {
             }
         }
 
-        chip8.exec();
-        chip8.update_timers();
-
-        // Clear the canvas to black before rendering each frame
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-
-        // Render only the pixels that are set
-        for y in 0..chip8::DISPLAY_HEIGHT {
-            for x in 0..chip8::DISPLAY_WIDTH {
-                if chip8.is_pixel_set(x, y) {
-                    canvas.set_draw_color(Color::RGB(255, 255, 255));
-                    canvas.fill_rect(scaled_rect(x, y))?;
-                }
-            }
+        for _ in 0..TICKS_PER_FRAME {
+            chip8.exec();
         }
-
-        canvas.present();
+        chip8.update_timers();
+        draw_frame(&chip8, &mut canvas);
     }
 
     Ok(())
@@ -135,13 +126,28 @@ fn map_scancode_to_key(sc: Scancode) -> Option<usize> {
     }
 }
 
-fn scaled_rect(x: usize, y: usize) -> Rect {
-    Rect::new(
-        (x as u32 * SCALE_FACTOR) as i32,
-        (y as u32 * SCALE_FACTOR) as i32,
-        SCALE_FACTOR,
-        SCALE_FACTOR,
-    )
+fn draw_frame(chip8: &chip8::Chip8, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
+    // Clear the canvas to black before rendering each frame
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+
+    // Render only the pixels that are set
+    for y in 0..chip8::DISPLAY_HEIGHT {
+        for x in 0..chip8::DISPLAY_WIDTH {
+            if chip8.is_pixel_set(x, y) {
+                canvas.set_draw_color(Color::RGB(255, 255, 255));
+                canvas
+                    .fill_rect(Rect::new(
+                        (x as u32 * SCALE_FACTOR) as i32,
+                        (y as u32 * SCALE_FACTOR) as i32,
+                        SCALE_FACTOR,
+                        SCALE_FACTOR,
+                    ))
+                    .unwrap();
+            }
+        }
+    }
+    canvas.present();
 }
 
 #[cfg(test)]

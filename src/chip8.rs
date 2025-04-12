@@ -1,9 +1,6 @@
-use rand;
-
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
-const DATA_REGISTERS: usize = 16;
 const DEFAULT_CHARACTER_SET_SIZE: usize = 80;
 const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
     0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
@@ -24,8 +21,9 @@ const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
     0xf0, 0x80, 0xf0, 0x80, 0x80, // F
 ];
 const INSTRUCTION_LENGTH: u16 = 2;
-const KEYS: usize = 16;
 const MEMORY_SIZE: usize = 4096;
+const NUM_DATA_REGISTERS: usize = 16;
+const NUM_KEYS: usize = 16;
 const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 const RAM_SIZE: usize = 4096;
 const STACK_DEPTH: usize = 16;
@@ -34,82 +32,39 @@ pub trait Speaker {
     fn beep(&mut self, status: bool);
 }
 
-struct Instruction {
-    raw: u16,
-    nibbles: (u8, u8, u8, u8),
-}
-
-impl Instruction {
-    fn get_nnn(&self) -> u16 {
-        self.raw & 0xFFF
-    }
-
-    fn get_nn(&self) -> u8 {
-        self.raw as u8 & 0xFF
-    }
-
-    fn get_n(&self) -> u8 {
-        self.nibbles.3
-    }
-
-    fn get_x(&self) -> usize {
-        self.nibbles.1 as usize
-    }
-
-    fn get_y(&self) -> usize {
-        self.nibbles.2 as usize
-    }
-}
-
-impl From<u16> for Instruction {
-    fn from(instruction: u16) -> Self {
-        let nibbles = (
-            ((instruction & 0xF000) >> 12) as u8,
-            ((instruction & 0x0F00) >> 8) as u8,
-            ((instruction & 0x00F0) >> 4) as u8,
-            (instruction & 0x000F) as u8,
-        );
-
-        Instruction {
-            raw: instruction.clone(),
-            nibbles,
-        }
-    }
-}
-
 pub struct Chip8<'a> {
     pc: u16,
     ram: [u8; RAM_SIZE],
-    v_registers: [u8; DATA_REGISTERS],
+    v_registers: [u8; NUM_DATA_REGISTERS],
     i_register: u16,
     stack: [u16; STACK_DEPTH],
     sp: u8,
     dt: u8,
     st: u8,
-    keyboard: [bool; KEYS],
+    keyboard: [bool; NUM_KEYS],
     screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     speaker: Box<dyn Speaker + 'a>,
 }
 
 impl<'a> Chip8<'a> {
+    // region: Public interface
     pub fn new(speaker: Box<dyn Speaker + 'a>) -> Self {
         let mut chip8 = Chip8 {
             pc: PROGRAM_LOAD_ADDRESS as u16,
             ram: [0; RAM_SIZE],
-            v_registers: [0; DATA_REGISTERS],
+            v_registers: [0; NUM_DATA_REGISTERS],
             i_register: 0,
             stack: [0; STACK_DEPTH],
             sp: 0,
             dt: 0,
             st: 0,
-            keyboard: [false; KEYS],
+            keyboard: [false; NUM_KEYS],
             screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
-            speaker: speaker,
+            speaker,
         };
 
         // Initialize the default character set in memory
         chip8.ram[..DEFAULT_CHARACTER_SET_SIZE].copy_from_slice(&DEFAULT_CHARACTER_SET);
-
         chip8
     }
 
@@ -119,21 +74,17 @@ impl<'a> Chip8<'a> {
         if rom_length > MEMORY_SIZE - PROGRAM_LOAD_ADDRESS {
             return Err("ROM too big, aborting".to_string());
         }
-        self.ram[PROGRAM_LOAD_ADDRESS as usize..][..rom_length].copy_from_slice(&rom);
 
+        self.ram[PROGRAM_LOAD_ADDRESS..][..rom_length].copy_from_slice(&rom);
         Ok(rom_length)
     }
 
-    pub fn update_timers(&mut self) {
-        if self.dt > 0 {
-            self.dt -= 1;
-        }
+    pub fn key_down(&mut self, key_idx: usize) {
+        self.keyboard[key_idx] = true;
+    }
 
-        let status = self.st > 0;
-        self.speaker.beep(status);
-        if status {
-            self.st -= 1;
-        }
+    pub fn key_up(&mut self, key_idx: usize) {
+        self.keyboard[key_idx] = false;
     }
 
     pub fn exec(&mut self) {
@@ -149,34 +100,34 @@ impl<'a> Chip8<'a> {
             (0x00, 0x00, 0x0E, 0x0E) => self.pc = self.stack_pop(),
 
             // JP addr: jump to location addr
-            (0x01, _, _, _) => self.pc = instruction.get_nnn(),
+            (0x01, _, _, _) => self.pc = instruction.nnn(),
 
             // CALL addr: call subroutine at addr
             (0x02, _, _, _) => {
                 self.stack_push(self.pc);
-                self.pc = instruction.get_nnn();
+                self.pc = instruction.nnn();
             }
 
             // SE Vx, byte: skip next instruction if Vx = byte
             (0x03, _, _, _) => {
-                let x = self.v_registers[instruction.get_x()];
-                if x == instruction.get_nn() {
+                let x = self.v_registers[instruction.x()];
+                if x == instruction.nn() {
                     self.advance_pc();
                 }
             }
 
             // SNE Vx, byte: skip next instruction if Vx != byte
             (0x04, _, _, _) => {
-                let x = self.v_registers[instruction.get_x()];
-                if x != instruction.get_nn() {
+                let x = self.v_registers[instruction.x()];
+                if x != instruction.nn() {
                     self.advance_pc();
                 }
             }
 
             // SE Vx, Vy: skip next instruction if Vx = Vy
             (0x05, _, _, 0x00) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
 
                 if x == y {
                     self.advance_pc();
@@ -184,94 +135,89 @@ impl<'a> Chip8<'a> {
             }
 
             // LD Vx, byte: set Vx = byte
-            (0x06, _, _, _) => {
-                let register = instruction.get_x();
-                let value = instruction.get_nn();
-                self.v_registers[register] = value;
-            }
+            (0x06, _, _, _) => self.v_registers[instruction.x()] = instruction.nn(),
 
             // ADD Vx, byte: set Vx = Vx + byte
             (0x07, _, _, _) => {
-                let register = instruction.get_x();
+                let register = instruction.x();
                 let value = self.v_registers[register] as u16;
-                let new_value = value + instruction.get_nn() as u16;
+                let new_value = value + instruction.nn() as u16;
                 self.v_registers[register] = new_value as u8;
             }
 
             // LD Vx, Vy: set Vx = Vy
             (0x08, _, _, 0x00) => {
-                let y = self.v_registers[instruction.get_y()];
-                self.v_registers[instruction.get_x()] = y;
+                self.v_registers[instruction.x()] = self.v_registers[instruction.y()];
             }
 
             // OR Vx, Vy: set Vx = Vx OR Vy
             (0x08, _, _, 0x01) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
-                self.v_registers[instruction.get_x()] = x | y;
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
+                self.v_registers[instruction.x()] = x | y;
             }
 
             // AND Vx, Vy: set Vx = V AND Vy
             (0x08, _, _, 0x02) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
-                self.v_registers[instruction.get_x()] = x & y;
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
+                self.v_registers[instruction.x()] = x & y;
             }
 
             // XOR Vx, Vy: set Vx = Vx XOR Vy
             (0x08, _, _, 0x03) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
-                self.v_registers[instruction.get_x()] = x ^ y;
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
+                self.v_registers[instruction.x()] = x ^ y;
             }
 
             // ADD Vx, Vy: set Vx = Vx + Vy, set VF = carry
             (0x08, _, _, 0x04) => {
-                let x = self.v_registers[instruction.get_x()] as u16;
-                let y = self.v_registers[instruction.get_y()] as u16;
+                let x = self.v_registers[instruction.x()] as u16;
+                let y = self.v_registers[instruction.y()] as u16;
                 let result = x + y;
 
                 self.set_carry_if(result > 255);
-                self.v_registers[instruction.get_x()] = result as u8;
+                self.v_registers[instruction.x()] = result as u8;
             }
 
             // SUB Vx, Vy: set Vx = Vx - Vy, set VF = NOT borrow
             (0x08, _, _, 0x05) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
 
                 self.set_carry_if(x > y);
-                self.v_registers[instruction.get_x()] = x.wrapping_sub(y);
+                self.v_registers[instruction.x()] = x.wrapping_sub(y);
             }
 
             // SHR Vx {, Vy}: set Vx = Vx SHR 1o
             (0x08, _, _, 0x06) => {
-                let x = self.v_registers[instruction.get_x()];
+                let x = self.v_registers[instruction.x()];
                 self.set_carry_if(x & 1 == 1);
-                self.v_registers[instruction.get_x()] = x >> 1;
+                self.v_registers[instruction.x()] = x >> 1;
             }
 
             // SUBN Vx, Vy: set Vx = Vy - Vx, set VF = NOT borrow
             (0x08, _, _, 0x07) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
 
                 self.set_carry_if(y > x);
-                self.v_registers[instruction.get_x()] = y.wrapping_sub(x);
+                self.v_registers[instruction.x()] = y.wrapping_sub(x);
             }
 
             // SHL Vx {, Vy}: set Vx = Vx SHL 1
             (0x08, _, _, 0x0E) => {
-                let x = self.v_registers[instruction.get_x()];
+                let x = self.v_registers[instruction.x()];
                 let msb = (x & 0x80) >> 7; // Extract the MSB (most significant bit)
                 self.v_registers[0xF] = msb; // Set VF to the MSB
-                self.v_registers[instruction.get_x()] = x << 1; // Perform the left shift
+                self.v_registers[instruction.x()] = x << 1; // Perform the left shift
             }
 
             // SNE Vx, Vy: skip next instruction if Vx != Vy
             (0x09, _, _, 0x00) => {
-                let x = self.v_registers[instruction.get_x()];
-                let y = self.v_registers[instruction.get_y()];
+                let x = self.v_registers[instruction.x()];
+                let y = self.v_registers[instruction.y()];
 
                 if x != y {
                     self.advance_pc();
@@ -279,24 +225,24 @@ impl<'a> Chip8<'a> {
             }
 
             // LD I, addr: set I = addr
-            (0x0A, _, _, _) => self.i_register = instruction.get_nnn(),
+            (0x0A, _, _, _) => self.i_register = instruction.nnn(),
 
             // JP V0, addr: jump to location nnn + V0
-            (0x0B, _, _, _) => self.pc = self.v_registers[0] as u16 + instruction.get_nnn(),
+            (0x0B, _, _, _) => self.pc = self.v_registers[0] as u16 + instruction.nnn(),
 
             // RND Vx, byte:  et Vx = random byte AND kk.
             (0x0C, _, _, _) => {
                 let n: u8 = rand::random();
-                self.v_registers[instruction.get_x()] = n & instruction.get_nn();
+                self.v_registers[instruction.x()] = n & instruction.nn();
             }
 
             // DRW Vx, Vy, nibble: display n-byte sprite starting at memory
             // location I at (Vx, Vy), set VF = collision.
             (0x0D, _, _, _) => {
-                let x = self.v_registers[instruction.get_x()] as usize;
-                let y = self.v_registers[instruction.get_y()] as usize;
+                let x = self.v_registers[instruction.x()] as usize;
+                let y = self.v_registers[instruction.y()] as usize;
                 let start = self.i_register as usize;
-                let sprite: Vec<u8> = self.ram_read(start, instruction.get_n()).to_vec();
+                let sprite: Vec<u8> = self.ram_read(start, instruction.n()).to_vec();
 
                 let collission = self.draw_sprite(x, y, &sprite);
                 self.set_carry_if(collission);
@@ -305,7 +251,7 @@ impl<'a> Chip8<'a> {
             // SKP Vx: skip next instruction if key with the value of Vx is
             // pressed
             (0x0E, _, 0x09, 0x0E) => {
-                let x = self.v_registers[instruction.get_x()] as usize;
+                let x = self.v_registers[instruction.x()] as usize;
                 if self.is_key_down(x) {
                     self.advance_pc();
                 }
@@ -314,45 +260,57 @@ impl<'a> Chip8<'a> {
             // SKNP Vx: skip next instruction if key with the value of Vx is
             // not pressed
             (0x0E, _, 0x0A, 0x01) => {
-                let x = self.v_registers[instruction.get_x()] as usize;
+                let x = self.v_registers[instruction.x()] as usize;
                 if !self.is_key_down(x) {
                     self.advance_pc();
                 }
             }
 
             // LD Vx, DT: set Vx = delay timer value
-            (0x0F, _, 0x00, 0x07) => self.v_registers[instruction.get_x()] = self.dt,
+            (0x0F, _, 0x00, 0x07) => self.v_registers[instruction.x()] = self.dt,
 
             // LD Vx, K: wait for a key press, store the value of the key in V
             (0x0F, _, 0x00, 0x0A) => {
-                // TODO
+                let mut pressed = false;
+                for (i, key) in self.keyboard.iter().enumerate() {
+                    if *key {
+                        self.v_registers[instruction.x()] = i as u8;
+                        pressed = true;
+                        break;
+                    }
+                }
+
+                if !pressed {
+                    // Repeat current instruction
+                    self.pc -= INSTRUCTION_LENGTH;
+                }
             }
 
             // LD DT, Vx
-            (0x0F, _, 0x01, 0x05) => self.dt = self.v_registers[instruction.get_x()],
+            (0x0F, _, 0x01, 0x05) => self.dt = self.v_registers[instruction.x()],
 
             // LD ST, Vx: set sound timer = Vx
-            (0x0F, _, 0x01, 0x08) => self.st = self.v_registers[instruction.get_x()],
+            (0x0F, _, 0x01, 0x08) => self.st = self.v_registers[instruction.x()],
 
             // ADD I, Vx: set I = I + Vx
             (0x0F, _, 0x01, 0x0E) => {
                 let i = self.i_register;
-                let x = self.v_registers[instruction.get_x()] as u16;
-                let result = (i + x) as u16;
+                let x = self.v_registers[instruction.x()] as u16;
+                let result = i + x;
                 self.i_register = result;
                 self.set_carry_if(result > (1 << 15));
             }
 
             // LD F, Vx: set I = location of sprite for digit Vx
             (0x0F, _, 0x02, 0x09) => {
-                let x = self.v_registers[instruction.get_x()] as u16;
+                let x = self.v_registers[instruction.x()] as u16;
                 self.i_register = x * 5;
             }
 
             // LD B, Vx: store BCD representation of Vx in memory locations I,
             // I+1, and I+2.
             (0x0F, _, 0x03, 0x03) => {
-                let x = self.v_registers[instruction.get_x()] as u16;
+                let x = self.v_registers[instruction.x()] as u16;
                 let i = self.i_register as usize;
 
                 self.ram[i] = (x / 100) as u8;
@@ -365,7 +323,7 @@ impl<'a> Chip8<'a> {
             (0x0F, _, 0x05, 0x05) => {
                 let i = self.i_register as usize;
 
-                for n in 0..=instruction.get_x() {
+                for n in 0..=instruction.x() {
                     self.ram[i + n] = self.v_registers[n];
                 }
             }
@@ -375,7 +333,7 @@ impl<'a> Chip8<'a> {
             (0x0F, _, 0x06, 0x05) => {
                 let i = self.i_register as usize;
 
-                for n in 0..=instruction.get_x() {
+                for n in 0..=instruction.x() {
                     self.v_registers[n] = self.ram[i + n];
                 }
             }
@@ -384,20 +342,36 @@ impl<'a> Chip8<'a> {
         }
     }
 
-    // region: Display functions
+    pub fn update_timers(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+
+        let status = self.st > 0;
+        self.speaker.beep(status);
+        if status {
+            self.st -= 1;
+        }
+    }
+
     pub fn is_pixel_set(&self, x: usize, y: usize) -> bool {
         self.screen[y][x]
     }
+    // endregion
 
-    fn toggle_pixel(&mut self, x: usize, y: usize) {
-        self.screen[y][x] ^= true;
+    // region: Private functions
+    fn advance_pc(&mut self) {
+        self.pc += INSTRUCTION_LENGTH;
+    }
+
+    fn clear_screen(&mut self) {
+        self.screen = [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
     }
 
     fn draw_sprite(&mut self, x: usize, y: usize, sprite: &[u8]) -> bool {
         let mut pixel_collission = false;
 
-        for ly in 0..sprite.len() {
-            let b = sprite[ly];
+        for (ly, b) in sprite.iter().enumerate() {
             for lx in 0..8 {
                 if b & 0b10000000 >> lx > 0 {
                     let dx = (x + lx) % DISPLAY_WIDTH;
@@ -412,39 +386,8 @@ impl<'a> Chip8<'a> {
         pixel_collission
     }
 
-    fn clear_screen(&mut self) {
-        self.screen = [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
-    }
-    // endregion
-
-    // region: Keyboard functions
-    pub fn key_down(&mut self, key_idx: usize) {
-        self.keyboard[key_idx] = true;
-    }
-
-    pub fn key_up(&mut self, key_idx: usize) {
-        self.keyboard[key_idx] = false;
-    }
-
     fn is_key_down(&self, key: usize) -> bool {
         self.keyboard[key]
-    }
-    // endregion
-
-    // region: Stack functions
-    fn stack_push(&mut self, value: u16) {
-        self.stack[self.sp as usize] = value;
-        self.sp += 1;
-    }
-
-    fn stack_pop(&mut self) -> u16 {
-        self.sp -= 1;
-        self.stack[self.sp as usize]
-    }
-    // endregion
-
-    fn advance_pc(&mut self) {
-        self.pc += INSTRUCTION_LENGTH;
     }
 
     fn ram_read(&self, start: usize, bytes: u8) -> &[u8] {
@@ -456,8 +399,64 @@ impl<'a> Chip8<'a> {
         (bytes[0] as u16) << 8 | bytes[1] as u16
     }
 
-    pub fn set_carry_if(&mut self, condition: bool) {
+    fn set_carry_if(&mut self, condition: bool) {
         self.v_registers[0xf] = if condition { 1 } else { 0 };
+    }
+
+    fn stack_push(&mut self, value: u16) {
+        self.stack[self.sp as usize] = value;
+        self.sp += 1;
+    }
+
+    fn stack_pop(&mut self) -> u16 {
+        self.sp -= 1;
+        self.stack[self.sp as usize]
+    }
+
+    fn toggle_pixel(&mut self, x: usize, y: usize) {
+        self.screen[y][x] ^= true;
+    }
+    // endregion
+}
+
+struct Instruction {
+    opcode: u16,
+    nibbles: (u8, u8, u8, u8),
+}
+
+impl Instruction {
+    fn x(&self) -> usize {
+        self.nibbles.1 as usize
+    }
+
+    fn y(&self) -> usize {
+        self.nibbles.2 as usize
+    }
+
+    fn n(&self) -> u8 {
+        self.nibbles.3
+    }
+
+    fn nn(&self) -> u8 {
+        (self.opcode & 0xFF) as u8
+    }
+
+    fn nnn(&self) -> u16 {
+        self.opcode & 0xFFF
+    }
+}
+
+impl From<u16> for Instruction {
+    fn from(instruction: u16) -> Self {
+        Instruction {
+            opcode: instruction,
+            nibbles: (
+                ((instruction & 0xF000) >> 12) as u8,
+                ((instruction & 0x0F00) >> 8) as u8,
+                ((instruction & 0x00F0) >> 4) as u8,
+                (instruction & 0x000F) as u8,
+            ),
+        }
     }
 }
 
@@ -483,28 +482,28 @@ mod tests {
     #[test]
     fn toggle_pixel_can_toggle_a_pixel() {
         let mut chip8 = new_chip8();
-        assert_eq!(chip8.is_pixel_set(5, 5), false);
+        assert!(!chip8.is_pixel_set(5, 5));
         chip8.toggle_pixel(5, 5);
-        assert_eq!(chip8.is_pixel_set(5, 5), true);
+        assert!(chip8.is_pixel_set(5, 5));
         chip8.toggle_pixel(5, 5);
-        assert_eq!(chip8.is_pixel_set(5, 5), false);
+        assert!(!chip8.is_pixel_set(5, 5));
     }
 
     #[test]
     fn draw_sprite_returns_true_when_overwriting() {
         let mut chip8 = new_chip8();
-        assert_eq!(chip8.draw_sprite(0, 0, &[0xff]), false);
-        assert_eq!(chip8.draw_sprite(0, 0, &[0xff]), true);
+        assert!(!chip8.draw_sprite(0, 0, &[0xff]));
+        assert!(chip8.draw_sprite(0, 0, &[0xff]));
     }
 
     #[test]
     fn it_can_press_and_release_keys() {
         let mut chip8 = new_chip8();
-        assert_eq!(chip8.is_key_down(1), false);
+        assert!(!chip8.is_key_down(1));
         chip8.key_down(1);
-        assert_eq!(chip8.is_key_down(1), true);
+        assert!(chip8.is_key_down(1));
         chip8.key_up(1);
-        assert_eq!(chip8.is_key_down(1), false);
+        assert!(!chip8.is_key_down(1));
     }
 
     #[test]
@@ -531,5 +530,22 @@ mod tests {
             chip8.ram[..DEFAULT_CHARACTER_SET_SIZE],
             DEFAULT_CHARACTER_SET
         )
+    }
+
+    #[test]
+    fn test_rom_loading() {
+        let mut chip8 = new_chip8();
+
+        // Create a small ROM
+        let rom: Vec<u8> = vec![1, 2, 3, 4];
+
+        let result = chip8.load_rom(rom);
+        assert!(result.is_ok());
+
+        // Check that the ROM was loaded correctly
+        assert_eq!(chip8.ram[PROGRAM_LOAD_ADDRESS], 1);
+        assert_eq!(chip8.ram[PROGRAM_LOAD_ADDRESS + 1], 2);
+        assert_eq!(chip8.ram[PROGRAM_LOAD_ADDRESS + 2], 3);
+        assert_eq!(chip8.ram[PROGRAM_LOAD_ADDRESS + 3], 4);
     }
 }
