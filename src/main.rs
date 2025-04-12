@@ -1,6 +1,6 @@
 use crate::chip8::emulator::{Chip8, DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
-use std::env;
+use std::{env, fs};
 
 use debug_print::{debug_eprintln, debug_print, debug_println};
 use sdl2::event::Event;
@@ -35,7 +35,7 @@ fn main() {
     });
 }
 
-fn run(rom: &str) -> Result<(), String> {
+fn run(rom_path: &str) -> Result<(), String> {
     debug_print!("Initializing SDL: ");
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -44,7 +44,8 @@ fn run(rom: &str) -> Result<(), String> {
 
     let speaker = speaker::SDLSpeaker::new(&audio_subsystem);
     let mut chip8 = Chip8::new(Box::new(speaker));
-    debug_print!("Loading ROM: {}: ", &rom);
+    debug_print!("Loading ROM: {}: ", rom_path);
+    let rom = fs::read(rom_path).map_err(|e| format!("Cannot read ROM: {}", e))?;
     let bytes = chip8.load_rom(rom)?;
     debug_println!("Done ({} bytes)", bytes);
 

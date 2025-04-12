@@ -1,7 +1,5 @@
 use crate::chip8::registers::Registers;
 
-use std::fs;
-
 use rand;
 
 pub const DISPLAY_WIDTH: usize = 64;
@@ -114,8 +112,7 @@ impl<'a> Chip8<'a> {
         chip8
     }
 
-    pub fn load_rom(&mut self, file: &str) -> Result<usize, String> {
-        let rom = fs::read(file).map_err(|e| format!("Cannot read ROM: {}", e))?;
+    pub fn load_rom(&mut self, rom: Vec<u8>) -> Result<usize, String> {
         let rom_length = rom.len();
 
         if rom_length > MEMORY_SIZE - PROGRAM_LOAD_ADDRESS {
