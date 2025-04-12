@@ -27,6 +27,12 @@ So to get "deadbeef" inside the emulator you'd have to type "rfzrcffv".
 ## Resources
 
 * [Guide to making a CHIP-8 emulator](https://tobiasvl.github.io/blog/write-a-chip-8-emulator)
+* [Rust Programming: From Jim to Him Pt 1 — CHIP8 Emulator](https://alecgarza96.medium.com/rust-from-jim-to-him-pt-1-chip8-emulator-22c268e17b6e)
+
+## TODO and ideas
+
+* Chip8 systems originally redrew the screen at 60 Hz, this implementation doesn't.
+* Build an alternative frontend, e.g. WASM.
 
 ## License
 
