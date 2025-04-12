@@ -33,3 +33,8 @@ So to get "deadbeef" inside the emulator you'd have to type "rfzrcffv".
 MIT License Copyright (c) 2021 Michael Kohl
 
 For the full license text see [LICENSE](./LICENSE).
+
+## Test ROM licenses
+
+* `BC_test.ch8`: test ROM by BestCoder, see [BC_test.txt](./roms/BC_test.txt)
+* Other ROMS under MIT license, see [NinjaWeedle/chip8-test-rom-with-audio](https://github.com/NinjaWeedle/chip8-test-rom-with-audio)

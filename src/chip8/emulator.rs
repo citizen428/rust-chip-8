@@ -1,10 +1,8 @@
-use crate::chip8::audio::Speaker;
 use crate::chip8::registers::Registers;
 
 use std::fs;
 
 use rand;
-use sdl2::AudioSubsystem;
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
@@ -36,6 +34,10 @@ const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 const RAM_SIZE: usize = 4096;
 const STACK_DEPTH: usize = 16;
 
+pub trait Speaker {
+    fn beep(&mut self, status: bool);
+}
+
 struct Instruction {
     pub nibbles: (u8, u8, u8, u8),
     pub addr: u16,
@@ -65,7 +67,7 @@ impl From<u16> for Instruction {
     }
 }
 
-pub struct Chip8 {
+pub struct Chip8<'a> {
     pc: u16,
     ram: [u8; RAM_SIZE],
     pub registers: Registers,
@@ -75,11 +77,11 @@ pub struct Chip8 {
     st: u8,
     keyboard: [bool; KEYS],
     screen: [[bool; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
-    pub speaker: Speaker,
+    speaker: Box<dyn Speaker + 'a>,
 }
 
-impl Chip8 {
-    pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
+impl<'a> Chip8<'a> {
+    pub fn new(speaker: Box<dyn Speaker + 'a>) -> Self {
         let mut chip8 = Chip8 {
             pc: PROGRAM_LOAD_ADDRESS as u16,
             ram: [0; RAM_SIZE],
@@ -90,7 +92,7 @@ impl Chip8 {
             st: 0,
             keyboard: [false; KEYS],
             screen: [[false; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
-            speaker: Speaker::new(audio_subsystem),
+            speaker: speaker,
         };
 
         // Initialize the default character set in memory
@@ -448,9 +450,19 @@ impl Chip8 {
 mod tests {
     use super::*;
 
-    fn new_chip8() -> Chip8 {
-        let sdl_context = sdl2::init().unwrap();
-        Chip8::new(&sdl_context.audio().unwrap())
+    struct TestSpeaker {}
+    impl TestSpeaker {
+        fn new() -> Self {
+            TestSpeaker {}
+        }
+    }
+
+    impl Speaker for TestSpeaker {
+        fn beep(&mut self, _status: bool) {}
+    }
+
+    fn new_chip8() -> Chip8<'static> {
+        Chip8::new(Box::new(TestSpeaker::new()))
     }
 
     #[test]

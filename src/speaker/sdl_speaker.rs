@@ -1,5 +1,7 @@
-use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
+use crate::chip8::emulator::Speaker;
+
 use sdl2::AudioSubsystem;
+use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 
 pub struct SquareWave {
     phase_inc: f32,
@@ -22,11 +24,11 @@ impl AudioCallback for SquareWave {
     }
 }
 
-pub struct Speaker {
+pub struct SDLSpeaker {
     pub device: AudioDevice<SquareWave>,
 }
 
-impl Speaker {
+impl SDLSpeaker {
     pub fn new(audio_subsystem: &AudioSubsystem) -> Self {
         let spec = AudioSpecDesired {
             freq: Some(5000),
@@ -42,10 +44,12 @@ impl Speaker {
             })
             .expect("Could not initialize audio device");
 
-        Speaker { device }
+        SDLSpeaker { device }
     }
+}
 
-    pub fn beep(&mut self, status: bool) {
+impl Speaker for SDLSpeaker {
+    fn beep(&mut self, status: bool) {
         if status {
             self.device.resume();
         } else {

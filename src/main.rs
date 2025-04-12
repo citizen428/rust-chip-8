@@ -8,6 +8,9 @@ use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
+#[path = "speaker/sdl_speaker.rs"]
+mod speaker;
+
 mod chip8;
 
 const WINDOW_TITLE: &str = "Rust CHIP-8";
@@ -39,7 +42,8 @@ fn run(rom: &str) -> Result<(), String> {
     let audio_subsystem = sdl_context.audio()?;
     debug_println!("Done");
 
-    let mut chip8 = Chip8::new(&audio_subsystem);
+    let speaker = speaker::SDLSpeaker::new(&audio_subsystem);
+    let mut chip8 = Chip8::new(Box::new(speaker));
     debug_print!("Loading ROM: {}: ", &rom);
     let bytes = chip8.load_rom(rom)?;
     debug_println!("Done ({} bytes)", bytes);
