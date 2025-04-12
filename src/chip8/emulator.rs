@@ -1,10 +1,9 @@
-use crate::chip8::registers::Registers;
-
 use rand;
 
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
 
+const DATA_REGISTERS: usize = 16;
 const DEFAULT_CHARACTER_SET_SIZE: usize = 80;
 const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
     0xf0, 0x90, 0x90, 0x90, 0xf0, // 0
@@ -81,7 +80,8 @@ impl From<u16> for Instruction {
 pub struct Chip8<'a> {
     pc: u16,
     ram: [u8; RAM_SIZE],
-    pub registers: Registers,
+    v_registers: [u8; DATA_REGISTERS],
+    i_register: u16,
     stack: [u16; STACK_DEPTH],
     sp: u8,
     dt: u8,
@@ -96,7 +96,8 @@ impl<'a> Chip8<'a> {
         let mut chip8 = Chip8 {
             pc: PROGRAM_LOAD_ADDRESS as u16,
             ram: [0; RAM_SIZE],
-            registers: Registers::new(),
+            v_registers: [0; DATA_REGISTERS],
+            i_register: 0,
             stack: [0; STACK_DEPTH],
             sp: 0,
             dt: 0,
@@ -158,7 +159,7 @@ impl<'a> Chip8<'a> {
 
             // SE Vx, byte: skip next instruction if Vx = byte
             (0x03, _, _, _) => {
-                let x = self.registers.get_v(instruction.get_x());
+                let x = self.v_registers[instruction.get_x()];
                 if x == instruction.get_nn() {
                     self.advance_pc();
                 }
@@ -166,7 +167,7 @@ impl<'a> Chip8<'a> {
 
             // SNE Vx, byte: skip next instruction if Vx != byte
             (0x04, _, _, _) => {
-                let x = self.registers.get_v(instruction.get_x());
+                let x = self.v_registers[instruction.get_x()];
                 if x != instruction.get_nn() {
                     self.advance_pc();
                 }
@@ -174,8 +175,8 @@ impl<'a> Chip8<'a> {
 
             // SE Vx, Vy: skip next instruction if Vx = Vy
             (0x05, _, _, 0x00) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
 
                 if x == y {
                     self.advance_pc();
@@ -186,91 +187,91 @@ impl<'a> Chip8<'a> {
             (0x06, _, _, _) => {
                 let register = instruction.get_x();
                 let value = instruction.get_nn();
-                self.registers.set_v(register, value);
+                self.v_registers[register] = value;
             }
 
             // ADD Vx, byte: set Vx = Vx + byte
             (0x07, _, _, _) => {
                 let register = instruction.get_x();
-                let value = self.registers.get_v(register) as u16;
+                let value = self.v_registers[register] as u16;
                 let new_value = value + instruction.get_nn() as u16;
-                self.registers.set_v(register, new_value as u8);
+                self.v_registers[register] = new_value as u8;
             }
 
             // LD Vx, Vy: set Vx = Vy
             (0x08, _, _, 0x00) => {
-                let y = self.registers.get_v(instruction.get_y());
-                self.registers.set_v(instruction.get_x(), y);
+                let y = self.v_registers[instruction.get_y()];
+                self.v_registers[instruction.get_x()] = y;
             }
 
             // OR Vx, Vy: set Vx = Vx OR Vy
             (0x08, _, _, 0x01) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
-                self.registers.set_v(instruction.get_x(), x | y);
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
+                self.v_registers[instruction.get_x()] = x | y;
             }
 
             // AND Vx, Vy: set Vx = V AND Vy
             (0x08, _, _, 0x02) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
-                self.registers.set_v(instruction.get_x(), x & y);
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
+                self.v_registers[instruction.get_x()] = x & y;
             }
 
             // XOR Vx, Vy: set Vx = Vx XOR Vy
             (0x08, _, _, 0x03) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
-                self.registers.set_v(instruction.get_x(), x ^ y);
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
+                self.v_registers[instruction.get_x()] = x ^ y;
             }
 
             // ADD Vx, Vy: set Vx = Vx + Vy, set VF = carry
             (0x08, _, _, 0x04) => {
-                let x = self.registers.get_v(instruction.get_x()) as u16;
-                let y = self.registers.get_v(instruction.get_y()) as u16;
+                let x = self.v_registers[instruction.get_x()] as u16;
+                let y = self.v_registers[instruction.get_y()] as u16;
                 let result = x + y;
 
-                self.registers.set_carry_if(result > 255);
-                self.registers.set_v(instruction.get_x(), result as u8);
+                self.set_carry_if(result > 255);
+                self.v_registers[instruction.get_x()] = result as u8;
             }
 
             // SUB Vx, Vy: set Vx = Vx - Vy, set VF = NOT borrow
             (0x08, _, _, 0x05) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
 
-                self.registers.set_carry_if(x > y);
-                self.registers.set_v(instruction.get_x(), x.wrapping_sub(y));
+                self.set_carry_if(x > y);
+                self.v_registers[instruction.get_x()] = x.wrapping_sub(y);
             }
 
             // SHR Vx {, Vy}: set Vx = Vx SHR 1o
             (0x08, _, _, 0x06) => {
-                let x = self.registers.get_v(instruction.get_x());
-                self.registers.set_carry_if(x & 1 == 1);
-                self.registers.set_v(instruction.get_x(), x >> 1);
+                let x = self.v_registers[instruction.get_x()];
+                self.set_carry_if(x & 1 == 1);
+                self.v_registers[instruction.get_x()] = x >> 1;
             }
 
             // SUBN Vx, Vy: set Vx = Vy - Vx, set VF = NOT borrow
             (0x08, _, _, 0x07) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
 
-                self.registers.set_carry_if(y > x);
-                self.registers.set_v(instruction.get_x(), y.wrapping_sub(x));
+                self.set_carry_if(y > x);
+                self.v_registers[instruction.get_x()] = y.wrapping_sub(x);
             }
 
             // SHL Vx {, Vy}: set Vx = Vx SHL 1
             (0x08, _, _, 0x0E) => {
-                let x = self.registers.get_v(instruction.get_x());
+                let x = self.v_registers[instruction.get_x()];
                 let msb = (x & 0x80) >> 7; // Extract the MSB (most significant bit)
-                self.registers.set_v(0xF, msb); // Set VF to the MSB
-                self.registers.set_v(instruction.get_x(), x << 1); // Perform the left shift
+                self.v_registers[0xF] = msb; // Set VF to the MSB
+                self.v_registers[instruction.get_x()] = x << 1; // Perform the left shift
             }
 
             // SNE Vx, Vy: skip next instruction if Vx != Vy
             (0x09, _, _, 0x00) => {
-                let x = self.registers.get_v(instruction.get_x());
-                let y = self.registers.get_v(instruction.get_y());
+                let x = self.v_registers[instruction.get_x()];
+                let y = self.v_registers[instruction.get_y()];
 
                 if x != y {
                     self.advance_pc();
@@ -278,34 +279,33 @@ impl<'a> Chip8<'a> {
             }
 
             // LD I, addr: set I = addr
-            (0x0A, _, _, _) => self.registers.set_i(instruction.get_nnn()),
+            (0x0A, _, _, _) => self.i_register = instruction.get_nnn(),
 
             // JP V0, addr: jump to location nnn + V0
-            (0x0B, _, _, _) => self.pc = self.registers.get_v(0) as u16 + instruction.get_nnn(),
+            (0x0B, _, _, _) => self.pc = self.v_registers[0] as u16 + instruction.get_nnn(),
 
             // RND Vx, byte:  et Vx = random byte AND kk.
             (0x0C, _, _, _) => {
                 let n: u8 = rand::random();
-                self.registers
-                    .set_v(instruction.get_x(), n & instruction.get_nn());
+                self.v_registers[instruction.get_x()] = n & instruction.get_nn();
             }
 
             // DRW Vx, Vy, nibble: display n-byte sprite starting at memory
             // location I at (Vx, Vy), set VF = collision.
             (0x0D, _, _, _) => {
-                let x = self.registers.get_v(instruction.get_x()) as usize;
-                let y = self.registers.get_v(instruction.get_y()) as usize;
-                let start = self.registers.get_i() as usize;
+                let x = self.v_registers[instruction.get_x()] as usize;
+                let y = self.v_registers[instruction.get_y()] as usize;
+                let start = self.i_register as usize;
                 let sprite: Vec<u8> = self.ram_read(start, instruction.get_n()).to_vec();
 
                 let collission = self.draw_sprite(x, y, &sprite);
-                self.registers.set_carry_if(collission);
+                self.set_carry_if(collission);
             }
 
             // SKP Vx: skip next instruction if key with the value of Vx is
             // pressed
             (0x0E, _, 0x09, 0x0E) => {
-                let x = self.registers.get_v(instruction.get_x()) as usize;
+                let x = self.v_registers[instruction.get_x()] as usize;
                 if self.is_key_down(x) {
                     self.advance_pc();
                 }
@@ -314,14 +314,14 @@ impl<'a> Chip8<'a> {
             // SKNP Vx: skip next instruction if key with the value of Vx is
             // not pressed
             (0x0E, _, 0x0A, 0x01) => {
-                let x = self.registers.get_v(instruction.get_x()) as usize;
+                let x = self.v_registers[instruction.get_x()] as usize;
                 if !self.is_key_down(x) {
                     self.advance_pc();
                 }
             }
 
             // LD Vx, DT: set Vx = delay timer value
-            (0x0F, _, 0x00, 0x07) => self.registers.set_v(instruction.get_x(), self.dt),
+            (0x0F, _, 0x00, 0x07) => self.v_registers[instruction.get_x()] = self.dt,
 
             // LD Vx, K: wait for a key press, store the value of the key in V
             (0x0F, _, 0x00, 0x0A) => {
@@ -329,31 +329,31 @@ impl<'a> Chip8<'a> {
             }
 
             // LD DT, Vx
-            (0x0F, _, 0x01, 0x05) => self.dt = self.registers.get_v(instruction.get_x()),
+            (0x0F, _, 0x01, 0x05) => self.dt = self.v_registers[instruction.get_x()],
 
             // LD ST, Vx: set sound timer = Vx
-            (0x0F, _, 0x01, 0x08) => self.st = self.registers.get_v(instruction.get_x()),
+            (0x0F, _, 0x01, 0x08) => self.st = self.v_registers[instruction.get_x()],
 
             // ADD I, Vx: set I = I + Vx
             (0x0F, _, 0x01, 0x0E) => {
-                let i = self.registers.get_i();
-                let x = self.registers.get_v(instruction.get_x()) as u16;
+                let i = self.i_register;
+                let x = self.v_registers[instruction.get_x()] as u16;
                 let result = (i + x) as u16;
-                self.registers.set_i(result);
-                self.registers.set_carry_if(result > (1 << 15));
+                self.i_register = result;
+                self.set_carry_if(result > (1 << 15));
             }
 
             // LD F, Vx: set I = location of sprite for digit Vx
             (0x0F, _, 0x02, 0x09) => {
-                let x = self.registers.get_v(instruction.get_x()) as u16;
-                self.registers.set_i(x * 5);
+                let x = self.v_registers[instruction.get_x()] as u16;
+                self.i_register = x * 5;
             }
 
             // LD B, Vx: store BCD representation of Vx in memory locations I,
             // I+1, and I+2.
             (0x0F, _, 0x03, 0x03) => {
-                let x = self.registers.get_v(instruction.get_x()) as u16;
-                let i = self.registers.get_i() as usize;
+                let x = self.v_registers[instruction.get_x()] as u16;
+                let i = self.i_register as usize;
 
                 self.ram[i] = (x / 100) as u8;
                 self.ram[i + 1] = ((x % 100) / 10) as u8;
@@ -363,20 +363,20 @@ impl<'a> Chip8<'a> {
             // LD [I], Vx: store registers V0 through Vx in memory starting at
             // location I.
             (0x0F, _, 0x05, 0x05) => {
-                let i = self.registers.get_i() as usize;
+                let i = self.i_register as usize;
 
                 for n in 0..=instruction.get_x() {
-                    self.ram[i + n] = self.registers.get_v(n);
+                    self.ram[i + n] = self.v_registers[n];
                 }
             }
 
             // LD Vx, [I]: read registers V0 through Vx from memory starting at
             // location I
             (0x0F, _, 0x06, 0x05) => {
-                let i = self.registers.get_i() as usize;
+                let i = self.i_register as usize;
 
                 for n in 0..=instruction.get_x() {
-                    self.registers.set_v(n, self.ram[i + n]);
+                    self.v_registers[n] = self.ram[i + n];
                 }
             }
 
@@ -454,6 +454,10 @@ impl<'a> Chip8<'a> {
     fn read_opcode(&self, start: usize) -> u16 {
         let bytes = self.ram_read(start, 2);
         (bytes[0] as u16) << 8 | bytes[1] as u16
+    }
+
+    pub fn set_carry_if(&mut self, condition: bool) {
+        self.v_registers[0xf] = if condition { 1 } else { 0 };
     }
 }
 
