@@ -1,5 +1,3 @@
-use crate::chip8::emulator::{Chip8, DISPLAY_HEIGHT, DISPLAY_WIDTH};
-
 use std::{env, fs};
 
 use debug_print::{debug_eprintln, debug_print, debug_println};
@@ -8,16 +6,14 @@ use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
-#[path = "speaker/sdl_speaker.rs"]
-mod speaker;
-
 mod chip8;
+mod sdl_speaker;
 
 const WINDOW_TITLE: &str = "Rust CHIP-8";
 // Each CHIP-8 pixel gets rendered as a 10x10 square
 const SCALE_FACTOR: u32 = 10;
-const WINDOW_WIDTH: u32 = DISPLAY_WIDTH as u32 * SCALE_FACTOR;
-const WINDOW_HEIGHT: u32 = DISPLAY_HEIGHT as u32 * SCALE_FACTOR;
+const WINDOW_WIDTH: u32 = chip8::DISPLAY_WIDTH as u32 * SCALE_FACTOR;
+const WINDOW_HEIGHT: u32 = chip8::DISPLAY_HEIGHT as u32 * SCALE_FACTOR;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -42,8 +38,8 @@ fn run(rom_path: &str) -> Result<(), String> {
     let audio_subsystem = sdl_context.audio()?;
     debug_println!("Done");
 
-    let speaker = speaker::SDLSpeaker::new(&audio_subsystem);
-    let mut chip8 = Chip8::new(Box::new(speaker));
+    let speaker = sdl_speaker::SDLSpeaker::new(&audio_subsystem);
+    let mut chip8 = chip8::Chip8::new(Box::new(speaker));
     debug_print!("Loading ROM: {}: ", rom_path);
     let rom = fs::read(rom_path).map_err(|e| format!("Cannot read ROM: {}", e))?;
     let bytes = chip8.load_rom(rom)?;
@@ -102,8 +98,8 @@ fn run(rom_path: &str) -> Result<(), String> {
         canvas.clear();
 
         // Render only the pixels that are set
-        for y in 0..DISPLAY_HEIGHT {
-            for x in 0..DISPLAY_WIDTH {
+        for y in 0..chip8::DISPLAY_HEIGHT {
+            for x in 0..chip8::DISPLAY_WIDTH {
                 if chip8.is_pixel_set(x, y) {
                     canvas.set_draw_color(Color::RGB(255, 255, 255));
                     canvas.fill_rect(scaled_rect(x, y))?;

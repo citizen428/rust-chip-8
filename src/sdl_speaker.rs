@@ -1,4 +1,4 @@
-use crate::chip8::emulator::Speaker;
+use crate::chip8;
 
 use sdl2::AudioSubsystem;
 use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
@@ -48,7 +48,7 @@ impl SDLSpeaker {
     }
 }
 
-impl Speaker for SDLSpeaker {
+impl chip8::Speaker for SDLSpeaker {
     fn beep(&mut self, status: bool) {
         if status {
             self.device.resume();
