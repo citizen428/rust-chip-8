@@ -70,16 +70,20 @@ fn run(rom: &str) -> Result<(), String> {
                     break 'mainloop;
                 }
                 Event::KeyDown {
-                    scancode: Some(key),
-                    ..
+                    scancode: Some(sc), ..
                 } => {
-                    chip8.key_down(key);
+                    if let Some(key) = map_scancode_to_key(sc) {
+                        debug_println!("key down: {}", key);
+                        chip8.key_down(key);
+                    }
                 }
                 Event::KeyUp {
-                    scancode: Some(key),
-                    ..
+                    scancode: Some(sc), ..
                 } => {
-                    chip8.key_up(key);
+                    if let Some(key) = map_scancode_to_key(sc) {
+                        debug_println!("key up: {}", key);
+                        chip8.key_up(key);
+                    }
                 }
                 _ => {}
             }
@@ -108,6 +112,28 @@ fn run(rom: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn map_scancode_to_key(sc: Scancode) -> Option<usize> {
+    match sc {
+        Scancode::Num1 => Some(1),
+        Scancode::Num2 => Some(2),
+        Scancode::Num3 => Some(3),
+        Scancode::Num4 => Some(12),
+        Scancode::Q => Some(4),
+        Scancode::W => Some(5),
+        Scancode::E => Some(6),
+        Scancode::R => Some(13),
+        Scancode::A => Some(7),
+        Scancode::S => Some(8),
+        Scancode::D => Some(9),
+        Scancode::F => Some(14),
+        Scancode::Z => Some(10),
+        Scancode::X => Some(0),
+        Scancode::C => Some(11),
+        Scancode::V => Some(15),
+        _ => None,
+    }
+}
+
 fn scaled_rect(x: usize, y: usize) -> Rect {
     Rect::new(
         (x as u32 * SCALE_FACTOR) as i32,
@@ -115,4 +141,16 @@ fn scaled_rect(x: usize, y: usize) -> Rect {
         SCALE_FACTOR,
         SCALE_FACTOR,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_maps_physical_keys_to_virtual_ones() {
+        assert_eq!(map_scancode_to_key(Scancode::A), Some(7));
+        assert_eq!(map_scancode_to_key(Scancode::X), Some(0));
+        assert_eq!(map_scancode_to_key(Scancode::M), None);
+    }
 }
