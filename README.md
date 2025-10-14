@@ -6,7 +6,7 @@ A CHIP-8 emulator written in Rust
 
 CHIP-8 systems used a hexadecimal keyboard with the layout shown on the left.
 This is mapped to the physical keyboard as shown on the right.
->[!NOTE] 
+>[!NOTE]
 > While the diagram uses a QWERTY layout, the implementation is based on scancodes, so this
 > should work with any keyboard layout.
 
@@ -20,7 +20,7 @@ This is mapped to the physical keyboard as shown on the right.
 |---|---|---|---|               |---|---|---|---|
 | A | 0 | B | F |               | Z | X | C | V |
 |---|---|---|---|               |---|---|---|---|
-```
+ ```
 
 So to get "deadbeef" inside the emulator you'd have to type "rfzrcffv".
 
@@ -31,7 +31,6 @@ So to get "deadbeef" inside the emulator you'd have to type "rfzrcffv".
 
 ## TODO and ideas
 
-* Chip8 systems originally redrew the screen at 60 Hz, this implementation doesn't.
 * Build an alternative frontend, e.g. WASM.
 
 ## License

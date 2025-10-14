@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, fs, thread, time};
 
 use debug_print::{debug_eprintln, debug_print, debug_println};
 use sdl2::event::Event;
@@ -16,6 +16,7 @@ const WINDOW_HEIGHT: u32 = chip8::DISPLAY_HEIGHT as u32 * SCALE_FACTOR;
 const WINDOW_TITLE: &str = "Rust CHIP-8";
 
 const TICKS_PER_FRAME: usize = 10;
+const TARGET_FRAME_TIME: time::Duration = time::Duration::from_micros(16667); // ~60 Hz
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -56,7 +57,6 @@ fn run(rom_path: &str) -> Result<(), String> {
 
     let mut canvas = window
         .into_canvas()
-        .present_vsync()
         .build()
         .expect("Could not make a canvas");
 
@@ -65,6 +65,7 @@ fn run(rom_path: &str) -> Result<(), String> {
     let mut event_pump = sdl_context.event_pump()?;
 
     'mainloop: loop {
+        let frame_start = time::Instant::now();
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. }
@@ -99,6 +100,11 @@ fn run(rom_path: &str) -> Result<(), String> {
         }
         chip8.update_timers();
         draw_frame(&chip8, &mut canvas);
+
+        let frame_time = frame_start.elapsed();
+        if frame_time < TARGET_FRAME_TIME {
+            thread::sleep(TARGET_FRAME_TIME - frame_time);
+        }
     }
 
     Ok(())
