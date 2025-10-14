@@ -403,11 +403,17 @@ impl<'a> Chip8<'a> {
     }
 
     fn stack_push(&mut self, value: u16) {
+        if self.sp as usize >= STACK_DEPTH {
+            panic!("Stack overflow");
+        }
         self.stack[self.sp as usize] = value;
         self.sp += 1;
     }
 
     fn stack_pop(&mut self) -> u16 {
+        if self.sp == 0 {
+            panic!("Stack underflow");
+        }
         self.sp -= 1;
         self.stack[self.sp as usize]
     }
@@ -520,6 +526,22 @@ mod tests {
         assert_eq!(chip8.sp, 1);
         assert_eq!(chip8.stack_pop(), 255);
         assert_eq!(chip8.sp, 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "Stack overflow")]
+    fn it_panics_on_stack_overflow() {
+        let mut chip8 = new_chip8();
+        for _ in 0..=STACK_DEPTH {
+            chip8.stack_push(0x1234);
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "Stack underflow")]
+    fn it_panics_on_stack_underflow() {
+        let mut chip8 = new_chip8();
+        chip8.stack_pop();
     }
 
     #[test]
