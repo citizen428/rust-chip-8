@@ -21,7 +21,6 @@ const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
     0xf0, 0x80, 0xf0, 0x80, 0x80, // F
 ];
 const INSTRUCTION_LENGTH: u16 = 2;
-const MEMORY_SIZE: usize = 4096;
 const NUM_DATA_REGISTERS: usize = 16;
 const NUM_KEYS: usize = 16;
 const PROGRAM_LOAD_ADDRESS: usize = 0x200;
@@ -71,7 +70,7 @@ impl<'a> Chip8<'a> {
     pub fn load_rom(&mut self, rom: Vec<u8>) -> Result<usize, String> {
         let rom_length = rom.len();
 
-        if rom_length > MEMORY_SIZE - PROGRAM_LOAD_ADDRESS {
+        if rom_length > RAM_SIZE - PROGRAM_LOAD_ADDRESS {
             return Err("ROM too big, aborting".to_string());
         }
 
