@@ -244,8 +244,8 @@ impl<'a> Chip8<'a> {
                 let start = self.i_register as usize;
                 let sprite: Vec<u8> = self.ram_read(start, instruction.n()).to_vec();
 
-                let collission = self.draw_sprite(x, y, &sprite);
-                self.set_carry_if(collission);
+                let collision = self.draw_sprite(x, y, &sprite);
+                self.set_carry_if(collision);
             }
 
             // SKP Vx: skip next instruction if key with the value of Vx is
