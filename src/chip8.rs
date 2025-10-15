@@ -23,7 +23,7 @@ const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
 ];
 const INSTRUCTION_LENGTH: u16 = 2;
 const NUM_DATA_REGISTERS: usize = 16;
-const NUM_KEYS: usize = 16;
+pub const NUM_KEYS: usize = 16;
 const PROGRAM_LOAD_ADDRESS: usize = 0x200;
 const RAM_SIZE: usize = 4096;
 const STACK_DEPTH: usize = 16;
