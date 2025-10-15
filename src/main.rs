@@ -16,7 +16,6 @@ const WINDOW_WIDTH: u32 = chip8::DISPLAY_WIDTH as u32 * SCALE_FACTOR;
 const WINDOW_HEIGHT: u32 = chip8::DISPLAY_HEIGHT as u32 * SCALE_FACTOR;
 const WINDOW_TITLE: &str = "Rust CHIP-8";
 
-const TICKS_PER_FRAME: usize = 10;
 const TARGET_FRAME_TIME: time::Duration = time::Duration::from_micros(16667); // ~60 Hz
 
 fn main() {
@@ -96,7 +95,7 @@ fn run(rom_path: &str) -> Result<(), String> {
             }
         }
 
-        for _ in 0..TICKS_PER_FRAME {
+        for _ in 0..chip8::TICKS_PER_FRAME {
             chip8.exec();
         }
         chip8.update_timers();

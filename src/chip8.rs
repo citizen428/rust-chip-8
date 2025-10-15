@@ -1,5 +1,6 @@
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
+pub const TICKS_PER_FRAME: usize = 10;
 
 const DEFAULT_CHARACTER_SET_SIZE: usize = 80;
 const DEFAULT_CHARACTER_SET: [u8; DEFAULT_CHARACTER_SET_SIZE] = [
