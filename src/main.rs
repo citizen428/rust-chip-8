@@ -6,7 +6,8 @@ use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
-mod chip8;
+use chip_8::chip8;
+
 mod sdl_speaker;
 
 // Each CHIP-8 pixel gets rendered as a 10x10 square
